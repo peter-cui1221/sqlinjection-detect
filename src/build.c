@@ -2393,7 +2393,7 @@ void sqlite3SrcListDelete(SrcList *pList){
     sqliteFree(pItem->zName);
     sqliteFree(pItem->zAlias);
     //sqlite3DeleteTable(0, pItem->pTab);
-    sqlite3SelectDelete(pItem->pSelect);
+    //sqlite3SelectDelete(pItem->pSelect);
     sqlite3ExprDelete(pItem->pOn);
     sqlite3IdListDelete(pItem->pUsing);
   }

@@ -1632,7 +1632,7 @@ ParsedResultArray* sqlite3ParsedResultArrayAppend(ParsedResultArray *resultArray
 static void sqlite3ParsedItemFree(ParsedResultItem *parsedItem) {
     switch(parsedItem->sqltype) {
         case SQLTYPE_SELECT:
-            sqlite3SelectDelete(parsedItem->result.selectObj);
+            //sqlite3SelectDelete(parsedItem->result.selectObj);
             break;
 
         case SQLTYPE_REPLACE:

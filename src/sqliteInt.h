@@ -1335,7 +1335,10 @@ struct Parse {
 #define SQL_FLAG_UPDATE		0x01
 #define SQL_FLAG_DELETE		0x02
 #define SQL_FLAG_INSERT		0x04
+#define SQL_FLAG_SELECT		0x08
+#define SQL_FLAG_JOIN			0x10
 	int sflag;					 /* Flag for sqli state */
+	int select_num;			 /* select counter */
   char *zErrMsg;       /* An error message */
   //Vdbe *pVdbe;         /* An engine for executing database bytecode */
   u8 colNamesSet;      /* TRUE after OP_ColumnName has been issued to pVdbe */
@@ -1657,7 +1660,6 @@ void sqlite3DropIndex(Parse*, SrcList*, int);
 int sqlite3Select(Parse*, Select*, int, int, Select*, int, int*, char *aff);
 Select *sqlite3SelectNew(ExprList*,SrcList*,Expr*,ExprList*,Expr*,ExprList*,
                         int,Expr*,Expr*);
-void sqlite3SelectDelete(Select*);
 void sqlite3SelectUnbind(Select*);
 Table *sqlite3SrcListLookup(Parse*, SrcList*);
 int sqlite3IsReadOnly(Parse*, Table*, int);

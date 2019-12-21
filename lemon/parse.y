@@ -145,7 +145,6 @@ create_table_args ::= LP columnlist conslist_opt RP table_opt. {
 }
 create_table_args ::= AS select. {
   sqlite3EndTable(pParse,0,0,0);
-  //sqlite3SelectDelete(S);
 }
 columnlist ::= columnlist COMMA column.
 columnlist ::= column.
@@ -383,14 +382,13 @@ ifexists(A) ::= .            {A = 0;}
 //////////////////////// The SELECT statement /////////////////////////////////
 //
 cmd ::= select(X).  {
-  sqlite3Select(pParse, X, SRT_Callback, 0, 0, 0, 0, 0);
-  // sqlite3SelectDelete(X);
+  pParse->select_num++;
 }
 
 %type select {Select*}
-%destructor select {sqlite3SelectDelete($$);}
+//%destructor select { }
 %type oneselect {Select*}
-%destructor oneselect {sqlite3SelectDelete($$);}
+//%destructor oneselect { }
 
 select(A) ::= oneselect(X).                      {A = X;}
 %ifndef SQLITE_OMIT_COMPOUND_SELECT
@@ -408,7 +406,7 @@ multiselect_op(A) ::= EXCEPT|INTERSECT(OP).  {A = @OP;}
 %endif // SQLITE_OMIT_COMPOUND_SELECT
 oneselect(A) ::= SELECT distinct(D) selcollist(W) from(X) where_opt(Y)
                  groupby_opt(P) having_opt(Q) orderby_opt(Z) limit_opt(L). {
-  A = sqlite3SelectNew(W,X,Y,P,Q,Z,D,L.pLimit,L.pOffset);
+  pParse->select_num++;
 }
 
 // The "distinct" nonterminal is true (1) if the DISTINCT keyword is
@@ -504,10 +502,10 @@ seltablist(A) ::= stl_prefix(X) nm(Y) dbnm(D) as(Z) on_opt(N) using_opt(U). {
   // a grouping of table and subqueries.
   //
   %type seltablist_paren {Select*}
-  %destructor seltablist_paren {sqlite3SelectDelete($$);}
+  %destructor seltablist_paren { }
   seltablist_paren(A) ::= select(S).      {A = S;}
   seltablist_paren(A) ::= seltablist(F).  {
-     A = sqlite3SelectNew(0,F,0,0,0,0,0,0,0);
+     pParse->select_num++;
   }
 %endif // SQLITE_OMIT_SUBQUERY
 
@@ -522,10 +520,10 @@ fullname(A) ::= nm(X) dbnm(Y).  {A = sqlite3SrcListAppend(0,&X,&Y);}
 %type joinop {int}
 %type joinop2 {int}
 joinop(X) ::= COMMA|JOIN.              { X = JT_INNER; }
-joinop(X) ::= JOIN_KW(A) JOIN.         { X = sqlite3JoinType(pParse,&A,0,0); }
-joinop(X) ::= JOIN_KW(A) nm(B) JOIN.   { X = sqlite3JoinType(pParse,&A,&B,0); }
+joinop(X) ::= JOIN_KW(A) JOIN.         { pParse->sflag |= SQL_FLAG_JOIN; }
+joinop(X) ::= JOIN_KW(A) nm(B) JOIN.   { pParse->sflag |= SQL_FLAG_JOIN; }
 joinop(X) ::= JOIN_KW(A) nm(B) nm(C) JOIN.
-                                       { X = sqlite3JoinType(pParse,&A,&B,&C); }
+                                       { pParse->sflag |= SQL_FLAG_JOIN; }
 
 %type on_opt {Expr*}
 %destructor on_opt {sqlite3ExprDelete($$);}
@@ -819,7 +817,6 @@ expr(A) ::= expr(W) between_op(N) between_elem(X) AND between_elem(Y). [BETWEEN]
     if( A ){
       A->pSelect = X;
     }else{
-      sqlite3SelectDelete(X);
     }
     sqlite3ExprSpan(A,&B,&E);
   }
@@ -828,7 +825,6 @@ expr(A) ::= expr(W) between_op(N) between_elem(X) AND between_elem(Y). [BETWEEN]
     if( A ){
       A->pSelect = Y;
     }else{
-      sqlite3SelectDelete(Y);
     }
     if( N ) A = sqlite3Expr(TK_NOT, A, 0, 0);
     sqlite3ExprSpan(A,&X->span,&E);
@@ -837,7 +833,7 @@ expr(A) ::= expr(W) between_op(N) between_elem(X) AND between_elem(Y). [BETWEEN]
     SrcList *pSrc = sqlite3SrcListAppend(0,&Y,&Z);
     A = sqlite3Expr(TK_IN, X, 0, 0);
     if( A ){
-      A->pSelect = sqlite3SelectNew(0,pSrc,0,0,0,0,0,0,0);
+      pParse->select_num++;
     }else{
       sqlite3SrcListDelete(pSrc);
     }
@@ -850,7 +846,6 @@ expr(A) ::= expr(W) between_op(N) between_elem(X) AND between_elem(Y). [BETWEEN]
       p->pSelect = Y;
       sqlite3ExprSpan(p,&B,&E);
     }else{
-      sqlite3SelectDelete(Y);
     }
   }
 %endif // SQLITE_OMIT_SUBQUERY

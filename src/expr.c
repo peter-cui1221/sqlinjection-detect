@@ -400,7 +400,7 @@ void sqlite3ExprDelete(Expr *p){
   sqlite3ExprDelete(p->pLeft);
   sqlite3ExprDelete(p->pRight);
   sqlite3ExprListDelete(p->pList);
-  sqlite3SelectDelete(p->pSelect);
+  //sqlite3SelectDelete(p->pSelect);
   sqliteFree(p);
 }
 
