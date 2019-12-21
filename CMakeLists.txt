@@ -1,0 +1,12 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+
+PROJECT(sqli_detect)
+
+ADD_SUBDIRECTORY(src)
+
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
+
+# add all src file to variable ROOT_SRC
+AUX_SOURCE_DIRECTORY(src ROOT_SRC)
+
+ADD_EXECUTABLE(sqli_test ${ROOT_SRC})
