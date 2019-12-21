@@ -618,18 +618,18 @@ setlist(A) ::= nm(X) EQ expr(Y).   {A = sqlite3ExprListAppend(0,Y,&X);}
 /*             {sqlite3Insert(pParse, X, Y, 0, F, R);} */
 cmd ::= insert_cmd(R) INTO fullname(X) inscollist_opt(F) 
         VALUES valueslist(VL).
-            {sqlite3Insert(pParse, X, 0, VL, 0, F, R);}
+            {pParse->sflag |= SQL_FLAG_INSERT;}
 
 cmd ::= insert_cmd(R) INTO fullname(X) inscollist_opt(F)
         SET setlist(SL). 
-            {sqlite3Insert(pParse, X, SL, 0, 0, F, R);}
+            {pParse->sflag |= SQL_FLAG_INSERT;}
 
 cmd ::= insert_cmd(R) fullname(X) inscollist_opt(F)
         SET setlist(SL). 
-            {sqlite3Insert(pParse, X, SL, 0, 0, F, R);}
+            {pParse->sflag |= SQL_FLAG_INSERT;}
 
 cmd ::= insert_cmd(R) INTO fullname(X) inscollist_opt(F) select(S).
-            {sqlite3Insert(pParse, X, 0, 0, S, F, R);}
+            {pParse->sflag |= SQL_FLAG_INSERT;}
 
 %type insert_cmd {int}
 //insert_cmd(A) ::= INSERT orconf(R).   {A = R;}

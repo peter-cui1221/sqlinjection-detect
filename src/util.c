@@ -1637,7 +1637,7 @@ static void sqlite3ParsedItemFree(ParsedResultItem *parsedItem) {
 
         case SQLTYPE_REPLACE:
         case SQLTYPE_INSERT:
-            sqlite3InsertDelete(parsedItem->result.insertObj);
+            //sqlite3InsertDelete(parsedItem->result.insertObj);
             break;
 
         case SQLTYPE_UPDATE:

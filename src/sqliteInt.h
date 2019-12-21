@@ -1641,8 +1641,6 @@ void sqlite3EndTable(Parse*,Token*,Token*,Select*);
 
 void sqlite3DropTable(Parse*, SrcList*, int, int);
 void sqlite3DeleteTable(sqlite3*, Table*);
-//void sqlite3Insert(Parse*, SrcList*, ExprList*, Select*, IdList*, int);
-void sqlite3Insert(Parse*, SrcList*, ExprList*, ValuesList*, Select*, IdList*, int);
 int sqlite3ArrayAllocate(void**,int,int);
 IdList *sqlite3IdListAppend(IdList*, Token*);
 int sqlite3IdListIndex(IdList*,const char*);
