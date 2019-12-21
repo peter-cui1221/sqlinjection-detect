@@ -1338,6 +1338,14 @@ struct Parse {
 #define SQL_FLAG_SELECT		0x08
 #define SQL_FLAG_JOIN			0x10
 #define SQL_FLAG_EXPR			0x20
+#define SQL_FLAG_TR				0x40
+#define SQL_FLAG_PARSE		0x80
+#define SQL_FLAG_TABLE		0x100
+#define SQL_FLAG_LIST			0x200
+#define SQL_FLAG_SCOPE		0x400
+#define SQL_FLAG_CODING		0x800
+#define SQL_FLAG_STMT			0x1000
+#define SQL_FLAG_SHOW			0x2000
 	int sflag;					 /* Flag for sqli state */
 	int select_num;			 /* select counter */
   char *zErrMsg;       /* An error message */

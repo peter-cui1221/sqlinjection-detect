@@ -1651,7 +1651,7 @@ static void sqlite3ParsedItemFree(ParsedResultItem *parsedItem) {
         case SQLTYPE_SET:
         case SQLTYPE_SET_NAMES:
         case SQLTYPE_SET_CHARACTER_SET:
-            sqlite3SetStatementDelete(parsedItem->result.setObj);
+            //sqlite3SetStatementDelete(parsedItem->result.setObj);
             break;           
             
         default:

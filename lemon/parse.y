@@ -95,22 +95,22 @@ struct AttachKey { int type;  Token key; };
 input ::= cmdlist.
 cmdlist ::= cmdlist ecmd.
 cmdlist ::= ecmd.
-cmdx ::= cmd.           { sqlite3FinishCoding(pParse); }
-cmdx ::= LP cmd RP.     { sqlite3FinishCoding(pParse); }
+cmdx ::= cmd.           { pParse->sflag |= SQL_FLAG_CODING;}
+cmdx ::= LP cmd RP.     { pParse->sflag |= SQL_FLAG_CODING;}
 ecmd ::= SEMI.
 ecmd ::= explain cmdx SEMI.
-explain ::= .           { sqlite3BeginParse(pParse, 0); }
+explain ::= .           { pParse->sflag |= SQL_FLAG_PARSE; }
 %ifndef SQLITE_OMIT_EXPLAIN
-explain ::= EXPLAIN.              { sqlite3BeginParse(pParse, 1); }
-explain ::= EXPLAIN QUERY PLAN.   { sqlite3BeginParse(pParse, 2); }
+explain ::= EXPLAIN.              { pParse->sflag |= SQL_FLAG_PARSE; }
+explain ::= EXPLAIN QUERY PLAN.   { pParse->sflag |= SQL_FLAG_PARSE; }
 %endif
 
 ///////////////////// Begin and end transactions. ////////////////////////////
 //
 
-//cmd ::= BEGIN transtype(Y) trans_opt.  {sqlite3BeginTransaction(pParse, Y);}
-cmd ::= BEGIN trans_opt.  {sqlite3BeginTransaction(pParse, SQLTYPE_TRANSACTION_BEGIN);}
-cmd ::= START TRANSACTION. {sqlite3BeginTransaction(pParse, SQLTYPE_TRANSACTION_START);}
+//cmd ::= BEGIN transtype(Y) trans_opt.  { pParse->sflag |= SQL_FLAG_TR;}
+cmd ::= BEGIN trans_opt.  { pParse->sflag |= SQL_FLAG_TR;}
+cmd ::= START TRANSACTION. { pParse->sflag |= SQL_FLAG_TR;}
 trans_opt ::= .
 trans_opt ::= WORK.
 //trans_opt ::= TRANSACTION.
@@ -121,15 +121,15 @@ trans_opt ::= WORK.
 //transtype(A) ::= DEFERRED(X).  {A = @X;}
 //transtype(A) ::= IMMEDIATE(X). {A = @X;}
 //transtype(A) ::= EXCLUSIVE(X). {A = @X;}
-cmd ::= COMMIT trans_opt.      {sqlite3CommitTransaction(pParse);}
-//cmd ::= END trans_opt.         {sqlite3CommitTransaction(pParse);}
-cmd ::= ROLLBACK trans_opt.    {sqlite3RollbackTransaction(pParse);}
+cmd ::= COMMIT trans_opt.      { pParse->sflag |= SQL_FLAG_TR; }
+//cmd ::= END trans_opt.         { pParse->sflag |= SQL_FLAG_TR; }
+cmd ::= ROLLBACK trans_opt.    { pParse->sflag |= SQL_FLAG_TR; }
 
 ///////////////////// The CREATE TABLE statement ////////////////////////////
 //
 cmd ::= create_table create_table_args.
 create_table ::= CREATE temp TABLE ifnotexists nm dbnm. {
-   sqlite3StartTable(pParse, 0, 0, 0, 0, 0);
+   pParse->sflag |= SQL_FLAG_TABLE;
 }
 
 %type ifnotexists {int}
@@ -144,7 +144,7 @@ create_table_args ::= LP columnlist conslist_opt RP table_opt. {
   //sqlite3EndTable(pParse,&X,&Y,0);
 }
 create_table_args ::= AS select. {
-  sqlite3EndTable(pParse,0,0,0);
+	pParse->sflag |= SQL_FLAG_TABLE;
 }
 columnlist ::= columnlist COMMA column.
 columnlist ::= column.
@@ -360,7 +360,7 @@ resolvetype(A) ::= REPLACE.                  {A = OE_Replace;}
 ////////////////////////// The DROP TABLE /////////////////////////////////////
 //
 cmd ::= DROP TABLE ifexists(E) fullname(X). {
-  sqlite3DropTable(pParse, X, 0, E);
+  pParse->sflag |= SQL_FLAG_TABLE;
 }
 %type ifexists {int}
 ifexists(A) ::= IF EXISTS.   {A = 1;}
@@ -446,11 +446,11 @@ as(X) ::= .            {X.n = 0;}
 
 
 %type seltablist {SrcList*}
-%destructor seltablist {sqlite3SrcListDelete($$);}
+%destructor seltablist {}
 %type stl_prefix {SrcList*}
-%destructor stl_prefix {sqlite3SrcListDelete($$);}
+%destructor stl_prefix {}
 %type from {SrcList*}
-%destructor from {sqlite3SrcListDelete($$);}
+%destructor from {}
 
 // A complete FROM clause.
 //
@@ -491,8 +491,8 @@ dbnm(A) ::= .          {A.z=0; A.n=0;}
 dbnm(A) ::= DOT nm(X). {A = X;}
 
 %type fullname {SrcList*}
-%destructor fullname {sqlite3SrcListDelete($$);}
-fullname(A) ::= nm(X) dbnm(Y).  {A = sqlite3SrcListAppend(0,&X,&Y);}
+%destructor fullname {}
+fullname(A) ::= nm(X) dbnm(Y).  {  pParse->sflag |= SQL_FLAG_LIST; }
 
 %type joinop {int}
 %type joinop2 {int}
@@ -508,7 +508,7 @@ on_opt(N) ::= ON expr(E).   {N = E;}
 on_opt(N) ::= .             {N = 0;}
 
 %type using_opt {IdList*}
-%destructor using_opt {sqlite3IdListDelete($$);}
+%destructor using_opt { }
 using_opt(U) ::= USING LP inscollist(L) RP.  {U = L;}
 using_opt(U) ::= .                        {U = 0;}
 
@@ -621,15 +621,15 @@ itemlist(A) ::= itemlist(X) COMMA expr(Y).  {pParse->sflag |= SQL_FLAG_EXPR;}
 itemlist(A) ::= expr(X).                    {pParse->sflag |= SQL_FLAG_EXPR;}
 
 %type inscollist_opt {IdList*}
-%destructor inscollist_opt {sqlite3IdListDelete($$);}
+%destructor inscollist_opt {}
 %type inscollist {IdList*}
-%destructor inscollist {sqlite3IdListDelete($$);}
+%destructor inscollist {}
 
 inscollist_opt(A) ::= .                       {A = 0;}
 inscollist_opt(A) ::= LP RP.                  {A = 0;}
 inscollist_opt(A) ::= LP inscollist(X) RP.    {A = X;}
-inscollist(A) ::= inscollist(X) COMMA nm(Y).  {A = sqlite3IdListAppend(X,&Y);}
-inscollist(A) ::= nm(Y).                      {A = sqlite3IdListAppend(0,&Y);}
+inscollist(A) ::= inscollist(X) COMMA nm(Y).  { pParse->sflag |= SQL_FLAG_LIST;}
+inscollist(A) ::= nm(Y).                      { pParse->sflag |= SQL_FLAG_LIST;}
                            
 /////////////////////////// Expression Processing /////////////////////////////
 //
@@ -989,15 +989,15 @@ raisetype(A) ::= FAIL.      {A = OE_Fail;}
 
 //////////////////////// the SET statement ////////////////////////////////
 cmd ::= SET variable_assignment_list(EL). {
-    sqlite3SetStatement(pParse, EL, 0, SQLTYPE_SET);
+	  pParse->sflag |= SQL_FLAG_STMT;
 }
 
 cmd ::= SET NAMES ids(X).  {
-    sqlite3SetStatement(pParse, 0, &X, SQLTYPE_SET_NAMES);   
+	  pParse->sflag |= SQL_FLAG_STMT;
 }
 
 cmd ::= SET CHARACTER SET ids(X). {
-    sqlite3SetStatement(pParse, 0, &X, SQLTYPE_SET_CHARACTER_SET);
+	  pParse->sflag |= SQL_FLAG_STMT;
 }
 
 %type variable_assignment_list {ExprList*}
@@ -1014,7 +1014,7 @@ variable_assignment_list(A) ::= scope_qualifier user_var_name(N) EQ expr(E). {
 scope_qualifier ::= GLOBAL. 
 scope_qualifier ::= LOCAL. 
 scope_qualifier ::= SESSION. 
-scope_qualifier ::= VARIABLE1(V) DOT. { sqlite3CheckSetScope(pParse, &V); }
+scope_qualifier ::= VARIABLE1(V) DOT. { pParse->sflag |= SQL_FLAG_SCOPE; }
 scope_qualifier ::= .
 
 %type user_var_name {Token}
@@ -1029,23 +1029,23 @@ cmd ::= show_variables.
 cmd ::= show_collation.
 
 show_databes ::= SHOW DATABASES|SCHEMAS show_statement_pattern. {
-    sqlite3ShowStatement(pParse, SHOWTYPE_SHOW_DATABASES);
+		pParse->sflag |= SQL_FLAG_SHOW;
 }
 
 show_tables ::= SHOW full_keyword TABLES from_db show_statement_pattern. {
-    sqlite3ShowStatement(pParse, SHOWTYPE_SHOW_TABLES);
+		pParse->sflag |= SQL_FLAG_SHOW;
 }
 
 show_table_status ::= SHOW TABLE STATUS from_db show_statement_pattern. {
-    sqlite3ShowStatement(pParse, SHOWTYPE_SHOW_TABLE_STATUS);
+		pParse->sflag |= SQL_FLAG_SHOW;
 }
 
 show_variables ::= SHOW scope_qualifier VARIABLES show_statement_pattern. {
-    sqlite3ShowStatement(pParse, SHOWTYPE_SHOW_VARIABLES);
+		pParse->sflag |= SQL_FLAG_SHOW;
 }
 
 show_collation ::= SHOW COLLATION show_statement_pattern. {
-    sqlite3ShowStatement(pParse, SHOWTYPE_SHOW_COLLATION);              
+		pParse->sflag |= SQL_FLAG_SHOW;
 }
 
 full_keyword ::= JOIN_KW.
