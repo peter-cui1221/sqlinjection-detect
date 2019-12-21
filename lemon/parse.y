@@ -602,7 +602,7 @@ where_opt(A) ::= WHERE expr(X).       {A = X;}
 //
 //cmd ::= UPDATE orconf(R) fullname(X) SET setlist(Y) where_opt(Z).
 cmd ::= UPDATE fullname(X) SET setlist(Y) where_opt(Z) limit_opt(L).
-    {sqlite3Update(pParse,X,Y,Z,OE_Default, L.pLimit, L.pOffset);}
+    {pParse->sflag |= SQL_FLAG_UPDATE;}
 
 %type setlist {ExprList*}
 %destructor setlist {sqlite3ExprListDelete($$);}
