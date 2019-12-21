@@ -1645,7 +1645,7 @@ static void sqlite3ParsedItemFree(ParsedResultItem *parsedItem) {
             break;
 
         case SQLTYPE_DELETE:
-            sqlite3DeleteFree(parsedItem->result.deleteObj);
+            //sqlite3DeleteFree(parsedItem->result.deleteObj);
             break;
         
         case SQLTYPE_SET:

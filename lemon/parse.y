@@ -590,7 +590,7 @@ limit_opt(A) ::= LIMIT expr(X) COMMA expr(Y).
 
 /////////////////////////// The DELETE statement /////////////////////////////
 //
-cmd ::= DELETE FROM fullname(X) where_opt(Y) limit_opt(L). {sqlite3DeleteFrom(pParse,X,Y, L.pLimit, L.pOffset);}
+cmd ::= DELETE FROM fullname(X) where_opt(Y) limit_opt(L). {pParse->sflag |= SQL_FLAG_DELETE;}
 
 %type where_opt {Expr*}
 %destructor where_opt {sqlite3ExprDelete($$);}
