@@ -9,3 +9,6 @@ make
 
 # thanks
 this project is base on https://github.com/winkyao/lemon
+
+# others
+this project can't work now, but it will be soon
