@@ -95,11 +95,11 @@ struct AttachKey { int type;  Token key; };
 input ::= cmdlist.
 cmdlist ::= cmdlist ecmd.
 cmdlist ::= ecmd.
-cmdx ::= cmd.           { pParse->sflag |= SQL_FLAG_CODING;}
+cmdx ::= cmd.           { }
 cmdx ::= LP cmd RP.     { pParse->sflag |= SQL_FLAG_CODING;}
 ecmd ::= SEMI.
 ecmd ::= explain cmdx SEMI.
-explain ::= .           { pParse->sflag |= SQL_FLAG_PARSE; }
+explain ::= .           { }
 %ifndef SQLITE_OMIT_EXPLAIN
 explain ::= EXPLAIN.              { pParse->sflag |= SQL_FLAG_PARSE; }
 explain ::= EXPLAIN QUERY PLAN.   { pParse->sflag |= SQL_FLAG_PARSE; }
