@@ -282,9 +282,9 @@ ccons ::= NOT NULL onconf.               {/*sqlite3AddNotNull(pParse, R);*/}
 ccons ::= PRIMARY KEY sortorder onconf.
                                      {/*sqlite3AddPrimaryKey(pParse,0,R,I,Z);*/}
 ccons ::= UNIQUE onconf.    {/*sqlite3CreateIndex(pParse,0,0,0,0,R,0,0,0,0);*/}
-ccons ::= CHECK LP expr(E) RP.       {/*sqlite3AddCheckConstraint(pParse,X);*/  sqlite3ExprDelete(E); }
+ccons ::= CHECK LP expr(E) RP.       { }
 ccons ::= REFERENCES nm idxlist_opt(X) refargs.
-                                {/*sqlite3CreateForeignKey(pParse,0,&T,TA,R);*/ sqlite3ExprListDelete(X); }
+                                { }
 ccons ::= defer_subclause.   {/*sqlite3DeferForeignKey(pParse,D);*/}
 ccons ::= COLLATE id.  {/*sqlite3AddCollateType(pParse, (char*)C.z, C.n);*/}
 
@@ -331,14 +331,12 @@ tcons ::= CONSTRAINT nm.
 
 // -- TODO --
 // idxlist and idxlist_opt need to explicit call its destructor, or will make memleak, do not know why it don't call automatically...
-tcons ::= PRIMARY KEY LP idxlist(X) autoinc RP onconf. { sqlite3ExprListDelete(X); }
+tcons ::= PRIMARY KEY LP idxlist(X) autoinc RP onconf. { }
 tcons ::= UNIQUE LP idxlist(X) RP onconf.
-                                 {/*sqlite3CreateIndex(pParse,0,0,0,X,R,0,0,0,0);*/ sqlite3ExprListDelete(X);}
-tcons ::= CHECK LP expr(E) RP onconf. {/*sqlite3AddCheckConstraint(pParse,E);*/ sqlite3ExprDelete(E);}
+                                 { }
+tcons ::= CHECK LP expr(E) RP onconf. { }
 tcons ::= FOREIGN KEY LP idxlist(X) RP
           REFERENCES nm idxlist_opt(Y) refargs defer_subclause_opt. { 
-        sqlite3ExprListDelete(X);
-        sqlite3ExprListDelete(Y);
  }
 
 %type defer_subclause_opt {int}
@@ -423,21 +421,19 @@ distinct(A) ::= .           {A = 0;}
 // opcode of TK_ALL.
 //
 %type selcollist {ExprList*}
-%destructor selcollist {sqlite3ExprListDelete($$);}
+%destructor selcollist { }
 %type sclp {ExprList*}
-%destructor sclp {sqlite3ExprListDelete($$);}
+%destructor sclp { }
 sclp(A) ::= selcollist(X) COMMA.             {A = X;}
 sclp(A) ::= .                                {A = 0;}
 selcollist(A) ::= sclp(P) expr(X) as(Y).     {
-   A = sqlite3ExprListAppend(P,X,Y.n?&Y:0);
+  pParse->sflag |= SQL_FLAG_EXPR;
 }
 selcollist(A) ::= sclp(P) STAR. {
-  A = sqlite3ExprListAppend(P, sqlite3Expr(TK_ALL, 0, 0, 0), 0);
+  pParse->sflag |= SQL_FLAG_EXPR;
 }
 selcollist(A) ::= sclp(P) nm(X) DOT STAR. {
-  Expr *pRight = sqlite3Expr(TK_ALL, 0, 0, 0);
-  Expr *pLeft = sqlite3Expr(TK_ID, 0, 0, &X);
-  A = sqlite3ExprListAppend(P, sqlite3Expr(TK_DOT, pLeft, pRight, 0), 0);
+  pParse->sflag |= SQL_FLAG_EXPR;
 }
 
 // An option "AS <id>" phrase that can follow one of the expressions that
@@ -470,32 +466,13 @@ stl_prefix(A) ::= seltablist(X) joinop(Y).    {
 }
 stl_prefix(A) ::= .                           {A = 0;}
 seltablist(A) ::= stl_prefix(X) nm(Y) dbnm(D) as(Z) on_opt(N) using_opt(U). {
-  A = sqlite3SrcListAppend(X,&Y,&D);
-  if( Z.n ) sqlite3SrcListAddAlias(A,&Z);
-  if( N ){
-    if( A && A->nSrc>1 ){ A->a[A->nSrc-2].pOn = N; }
-    else { sqlite3ExprDelete(N); }
-  }
-  if( U ){
-    if( A && A->nSrc>1 ){ A->a[A->nSrc-2].pUsing = U; }
-    else { sqlite3IdListDelete(U); }
-  }
+  pParse->sflag |= SQL_FLAG_EXPR;
 }
 %ifndef SQLITE_OMIT_SUBQUERY
   seltablist(A) ::= stl_prefix(X) LP seltablist_paren(S) RP
                     as(Z) on_opt(N) using_opt(U). {
-    A = sqlite3SrcListAppend(X,0,0);
-    A->a[A->nSrc-1].pSelect = S;
-    if( Z.n ) sqlite3SrcListAddAlias(A,&Z);
-    if( N ){
-      if( A && A->nSrc>1 ){ A->a[A->nSrc-2].pOn = N; }
-      else { sqlite3ExprDelete(N); }
-    }
-    if( U ){
-      if( A && A->nSrc>1 ){ A->a[A->nSrc-2].pUsing = U; }
-      else { sqlite3IdListDelete(U); }
-    }
-  }
+  pParse->sflag |= SQL_FLAG_EXPR;
+}
   
   // A seltablist_paren nonterminal represents anything in a FROM that
   // is contained inside parentheses.  This can be either a subquery or
@@ -526,7 +503,7 @@ joinop(X) ::= JOIN_KW(A) nm(B) nm(C) JOIN.
                                        { pParse->sflag |= SQL_FLAG_JOIN; }
 
 %type on_opt {Expr*}
-%destructor on_opt {sqlite3ExprDelete($$);}
+%destructor on_opt { }
 on_opt(N) ::= ON expr(E).   {N = E;}
 on_opt(N) ::= .             {N = 0;}
 
@@ -537,21 +514,19 @@ using_opt(U) ::= .                        {U = 0;}
 
 
 %type orderby_opt {ExprList*}
-%destructor orderby_opt {sqlite3ExprListDelete($$);}
+%destructor orderby_opt { }
 %type sortlist {ExprList*}
-%destructor sortlist {sqlite3ExprListDelete($$);}
+%destructor sortlist { }
 %type sortitem {Expr*}
-%destructor sortitem {sqlite3ExprDelete($$);}
+%destructor sortitem { }
 
 orderby_opt(A) ::= .                          {A = 0;}
 orderby_opt(A) ::= ORDER BY sortlist(X).      {A = X;}
 sortlist(A) ::= sortlist(X) COMMA sortitem(Y) collate(C) sortorder(Z). {
-  A = sqlite3ExprListAppend(X,Y,C.n>0?&C:0);
-  if( A ) A->a[A->nExpr-1].sortOrder = Z;
+	pParse->sflag |= SQL_FLAG_EXPR;
 }
 sortlist(A) ::= sortitem(Y) collate(C) sortorder(Z). {
-  A = sqlite3ExprListAppend(0,Y,C.n>0?&C:0);
-  if( A && A->a ) A->a[0].sortOrder = Z;
+	pParse->sflag |= SQL_FLAG_EXPR;
 }
 sortitem(A) ::= expr(X).   {A = X;}
 
@@ -565,19 +540,17 @@ collate(C) ::= .                {C.z = 0; C.n = 0;}
 collate(C) ::= COLLATE id(X).   {C = X;}
 
 %type groupby_opt {ExprList*}
-%destructor groupby_opt {sqlite3ExprListDelete($$);}
+%destructor groupby_opt { }
 groupby_opt(A) ::= .                      {A = 0;}
 groupby_opt(A) ::= GROUP BY exprlist(X).  {A = X;}
 
 %type having_opt {Expr*}
-%destructor having_opt {sqlite3ExprDelete($$);}
+%destructor having_opt {}
 having_opt(A) ::= .                {A = 0;}
 having_opt(A) ::= HAVING expr(X).  {A = X;}
 
 %type limit_opt {struct LimitVal}
 %destructor limit_opt {
-  sqlite3ExprDelete($$.pLimit);
-  sqlite3ExprDelete($$.pOffset);
 }
 limit_opt(A) ::= .                     {A.pLimit = 0; A.pOffset = 0;}
 limit_opt(A) ::= LIMIT expr(X).        {A.pLimit = X; A.pOffset = 0;}
@@ -591,7 +564,7 @@ limit_opt(A) ::= LIMIT expr(X) COMMA expr(Y).
 cmd ::= DELETE FROM fullname(X) where_opt(Y) limit_opt(L). {pParse->sflag |= SQL_FLAG_DELETE;}
 
 %type where_opt {Expr*}
-%destructor where_opt {sqlite3ExprDelete($$);}
+%destructor where_opt { }
 
 where_opt(A) ::= .                    {A = 0;}
 where_opt(A) ::= WHERE expr(X).       {A = X;}
@@ -603,11 +576,11 @@ cmd ::= UPDATE fullname(X) SET setlist(Y) where_opt(Z) limit_opt(L).
     {pParse->sflag |= SQL_FLAG_UPDATE;}
 
 %type setlist {ExprList*}
-%destructor setlist {sqlite3ExprListDelete($$);}
+%destructor setlist { }
 
 setlist(A) ::= setlist(Z) COMMA nm(X) EQ expr(Y).
-    {A = sqlite3ExprListAppend(Z,Y,&X);}
-setlist(A) ::= nm(X) EQ expr(Y).   {A = sqlite3ExprListAppend(0,Y,&X);}
+    {pParse->sflag |= SQL_FLAG_EXPR;}
+setlist(A) ::= nm(X) EQ expr(Y).   {pParse->sflag |= SQL_FLAG_EXPR;}
 
 ////////////////////////// The INSERT command /////////////////////////////////
 //
@@ -635,17 +608,17 @@ insert_cmd(A) ::= INSERT. { A = OE_Default; }
 insert_cmd(A) ::= REPLACE.            {A = OE_Replace;}
 
 %type valueslist {ValuesList*}
-%destructor valueslist {sqlite3ValuesListDelete($$);}
+%destructor valueslist { }
 
-valueslist(VL) ::= valueslist(V) COMMA LP itemlist(Y) RP.   { VL = sqlite3ValuesListAppend(V, Y);}
-valueslist(VL) ::= LP itemlist(Y) RP.                       { VL = sqlite3ValuesListAppend(0, Y); }
+valueslist(VL) ::= valueslist(V) COMMA LP itemlist(Y) RP.   { pParse->sflag |= SQL_FLAG_EXPR; }
+valueslist(VL) ::= LP itemlist(Y) RP.                       { pParse->sflag |= SQL_FLAG_EXPR; }
 valueslist(VL) ::= LP RP.                                   { VL = 0; }
 
 %type itemlist {ExprList*}
-%destructor itemlist {sqlite3ExprListDelete($$);}
+%destructor itemlist { }
 
-itemlist(A) ::= itemlist(X) COMMA expr(Y).  {A = sqlite3ExprListAppend(X,Y,0);}
-itemlist(A) ::= expr(X).                    {A = sqlite3ExprListAppend(0,X,0);}
+itemlist(A) ::= itemlist(X) COMMA expr(Y).  {pParse->sflag |= SQL_FLAG_EXPR;}
+itemlist(A) ::= expr(X).                    {pParse->sflag |= SQL_FLAG_EXPR;}
 
 %type inscollist_opt {IdList*}
 %destructor inscollist_opt {sqlite3IdListDelete($$);}
@@ -662,231 +635,150 @@ inscollist(A) ::= nm(Y).                      {A = sqlite3IdListAppend(0,&Y);}
 //
 
 %type expr {Expr*}
-%destructor expr {sqlite3ExprDelete($$);}
+%destructor expr {}
 %type term {Expr*}
-%destructor term {sqlite3ExprDelete($$);}
+%destructor term {}
 
 expr(A) ::= term(X).             {A = X;}
-expr(A) ::= LP(B) expr(X) RP(E). {A = X; sqlite3ExprSpan(A,&B,&E); }
-term(A) ::= NULL(X).             {A = sqlite3Expr(@X, 0, 0, &X);}
-expr(A) ::= ID(X).               {A = sqlite3Expr(TK_ID, 0, 0, &X);}
-expr(A) ::= JOIN_KW(X).          {A = sqlite3Expr(TK_ID, 0, 0, &X);}
+expr(A) ::= LP(B) expr(X) RP(E). {pParse->sflag |= SQL_FLAG_EXPR;}
+term(A) ::= NULL(X).             {pParse->sflag |= SQL_FLAG_EXPR;}
+expr(A) ::= ID(X).               {pParse->sflag |= SQL_FLAG_EXPR;}
+expr(A) ::= JOIN_KW(X).          {pParse->sflag |= SQL_FLAG_EXPR;}
 expr(A) ::= nm(X) DOT nm(Y). {
-  Expr *temp1 = sqlite3Expr(TK_ID, 0, 0, &X);
-  Expr *temp2 = sqlite3Expr(TK_ID, 0, 0, &Y);
-  A = sqlite3Expr(TK_DOT, temp1, temp2, 0);
+	pParse->sflag |= SQL_FLAG_EXPR;
 }
 expr(A) ::= nm(X) DOT nm(Y) DOT nm(Z). {
-  Expr *temp1 = sqlite3Expr(TK_ID, 0, 0, &X);
-  Expr *temp2 = sqlite3Expr(TK_ID, 0, 0, &Y);
-  Expr *temp3 = sqlite3Expr(TK_ID, 0, 0, &Z);
-  Expr *temp4 = sqlite3Expr(TK_DOT, temp2, temp3, 0);
-  A = sqlite3Expr(TK_DOT, temp1, temp4, 0);
+	pParse->sflag |= SQL_FLAG_EXPR;
 }
-term(A) ::= INTEGER|FLOAT|BLOB(X).      {A = sqlite3Expr(@X, 0, 0, &X);}
-term(A) ::= STRING(X).       {A = sqlite3Expr(@X, 0, 0, &X);}
-expr(A) ::= REGISTER(X).     {A = sqlite3RegisterExpr(pParse, &X);}
+term(A) ::= INTEGER|FLOAT|BLOB(X).      {pParse->sflag |= SQL_FLAG_EXPR;}
+term(A) ::= STRING(X).       {pParse->sflag |= SQL_FLAG_EXPR;}
+expr(A) ::= REGISTER(X).     {pParse->sflag |= SQL_FLAG_EXPR;}
 expr(A) ::= VARIABLE(X).     {
-  Token *pToken = &X;
-  Expr *pExpr = A = sqlite3Expr(TK_VARIABLE, 0, 0, pToken);
-  //sqlite3ExprAssignVarNumber(pParse, pExpr);
+	pParse->sflag |= SQL_FLAG_EXPR;
 }
 expr(A) ::= VARIABLE1(X).     {
-  Token *pToken = &X;
-  Expr *pExpr = A = sqlite3Expr(TK_VARIABLE, 0, 0, pToken);
-  //sqlite3ExprAssignVarNumber(pParse, pExpr);
+	pParse->sflag |= SQL_FLAG_EXPR;
 }
 %ifndef SQLITE_OMIT_CAST
 expr(A) ::= CAST(X) LP expr(E) AS typetoken(T) RP(Y). {
-  A = sqlite3Expr(TK_CAST, E, 0, &T);
-  sqlite3ExprSpan(A,&X,&Y);
+	pParse->sflag |= SQL_FLAG_EXPR;
 }
 %endif // SQLITE_OMIT_CAST
 expr(A) ::= ID(X) LP distinct(D) exprlist(Y) RP(E). {
-  A = sqlite3ExprFunction(Y, &X);
-  sqlite3ExprSpan(A,&X,&E);
-  if( D && A ){
-    A->flags |= EP_Distinct;
-  }
+	pParse->sflag |= SQL_FLAG_EXPR;
 }
 expr(A) ::= ID(X) LP STAR RP(E). {
-  A = sqlite3ExprFunction(0, &X);
-  sqlite3ExprSpan(A,&X,&E);
+	pParse->sflag |= SQL_FLAG_EXPR;
 }
 term(A) ::= CTIME_KW(OP). {
   /* The CURRENT_TIME, CURRENT_DATE, and CURRENT_TIMESTAMP values are
   ** treated as functions that return constants */
-  A = sqlite3ExprFunction(0,&OP);
-  if( A ) A->op = TK_CONST_FUNC;  
+	pParse->sflag |= SQL_FLAG_EXPR;
 }
-expr(A) ::= expr(X) AND(OP) expr(Y).            {A = sqlite3Expr(@OP, X, Y, 0);}
-expr(A) ::= expr(X) OR(OP) expr(Y).             {A = sqlite3Expr(@OP, X, Y, 0);}
-expr(A) ::= expr(X) LT|GT|GE|LE(OP) expr(Y).    {A = sqlite3Expr(@OP, X, Y, 0);}
-expr(A) ::= expr(X) EQ|NE(OP) expr(Y).          {A = sqlite3Expr(@OP, X, Y, 0);}
+expr(A) ::= expr(X) AND(OP) expr(Y).            {pParse->sflag |= SQL_FLAG_EXPR;}
+expr(A) ::= expr(X) OR(OP) expr(Y).             {pParse->sflag |= SQL_FLAG_EXPR;}
+expr(A) ::= expr(X) LT|GT|GE|LE(OP) expr(Y).    {pParse->sflag |= SQL_FLAG_EXPR;}
+expr(A) ::= expr(X) EQ|NE(OP) expr(Y).          {pParse->sflag |= SQL_FLAG_EXPR;}
 expr(A) ::= expr(X) BITAND|BITOR|LSHIFT|RSHIFT(OP) expr(Y).
-                                                {A = sqlite3Expr(@OP, X, Y, 0);}
-expr(A) ::= expr(X) PLUS|MINUS(OP) expr(Y).     {A = sqlite3Expr(@OP, X, Y, 0);}
-expr(A) ::= expr(X) STAR|SLASH|REM(OP) expr(Y). {A = sqlite3Expr(@OP, X, Y, 0);}
-expr(A) ::= expr(X) CONCAT(OP) expr(Y).         {A = sqlite3Expr(@OP, X, Y, 0);}
+                                                {pParse->sflag |= SQL_FLAG_EXPR;}
+expr(A) ::= expr(X) PLUS|MINUS(OP) expr(Y).     {pParse->sflag |= SQL_FLAG_EXPR;}
+expr(A) ::= expr(X) STAR|SLASH|REM(OP) expr(Y). {pParse->sflag |= SQL_FLAG_EXPR;}
+expr(A) ::= expr(X) CONCAT(OP) expr(Y).         {pParse->sflag |= SQL_FLAG_EXPR;}
 %type likeop {struct LikeOp}
 likeop(A) ::= LIKE_KW(X).     {A.eOperator = X; A.not = 0;}
 likeop(A) ::= NOT LIKE_KW(X). {A.eOperator = X; A.not = 1;}
 %type escape {Expr*}
-%destructor escape {sqlite3ExprDelete($$);}
+%destructor escape {}
 escape(X) ::= ESCAPE expr(A). [ESCAPE] {X = A;}
 escape(X) ::= .               [ESCAPE] {X = 0;}
 expr(A) ::= expr(X) likeop(OP) expr(Y) escape(E).  [LIKE_KW]  {
-  ExprList *pList;
-  pList = sqlite3ExprListAppend(0, X, 0);
-  pList = sqlite3ExprListAppend(pList, Y, 0);
-  if( E ){
-    pList = sqlite3ExprListAppend(pList, E, 0);
-  }
-  //A = sqlite3ExprFunction(pList, &OP.eOperator);
-  A = sqlite3ExprLikeOp(pList, &OP.eOperator);
-  if( OP.not ) A = sqlite3Expr(TK_NOT, A, 0, 0);
-  sqlite3ExprSpan(A, &X->span, &Y->span);
+	pParse->sflag |= SQL_FLAG_EXPR;
 }
 
 expr(A) ::= expr(X) ISNULL|NOTNULL(E). {
-  A = sqlite3Expr(@E, X, 0, 0);
-  sqlite3ExprSpan(A,&X->span,&E);
+	pParse->sflag |= SQL_FLAG_EXPR;
 }
 expr(A) ::= expr(X) IS NULL(E). {
-  A = sqlite3Expr(TK_ISNULL, X, 0, 0);
-  sqlite3ExprSpan(A,&X->span,&E);
+	pParse->sflag |= SQL_FLAG_EXPR;
 }
 expr(A) ::= expr(X) NOT NULL(E). {
-  A = sqlite3Expr(TK_NOTNULL, X, 0, 0);
-  sqlite3ExprSpan(A,&X->span,&E);
+	pParse->sflag |= SQL_FLAG_EXPR;
 }
 expr(A) ::= expr(X) IS NOT NULL(E). {
-  A = sqlite3Expr(TK_NOTNULL, X, 0, 0);
-  sqlite3ExprSpan(A,&X->span,&E);
+	pParse->sflag |= SQL_FLAG_EXPR;
 }
 expr(A) ::= NOT|BITNOT(B) expr(X). {
-  A = sqlite3Expr(@B, X, 0, 0);
-  sqlite3ExprSpan(A,&B,&X->span);
+	pParse->sflag |= SQL_FLAG_EXPR;
 }
 expr(A) ::= MINUS(B) expr(X). [UMINUS] {
-  A = sqlite3Expr(TK_UMINUS, X, 0, 0);
-  sqlite3ExprSpan(A,&B,&X->span);
+	pParse->sflag |= SQL_FLAG_EXPR;
 }
 expr(A) ::= PLUS(B) expr(X). [UPLUS] {
-  A = sqlite3Expr(TK_UPLUS, X, 0, 0);
-  sqlite3ExprSpan(A,&B,&X->span);
+	pParse->sflag |= SQL_FLAG_EXPR;
 }
 %type between_op {int}
 between_op(A) ::= BETWEEN.     {A = 0;}
 between_op(A) ::= NOT BETWEEN. {A = 1;}
 
 %type between_elem {Expr*}
-%destructor between_elem {sqlite3ExprDelete($$);}
+%destructor between_elem {}
 
-between_elem(A) ::= INTEGER|STRING(B). { A = sqlite3Expr(@B, 0, 0, &B); }
+between_elem(A) ::= INTEGER|STRING(B). {pParse->sflag |= SQL_FLAG_EXPR;}
 
 //expr(A) ::= expr(W) between_op(N) expr(X) AND expr(Y). [BETWEEN] {
 expr(A) ::= expr(W) between_op(N) between_elem(X) AND between_elem(Y). [BETWEEN] {
-  ExprList *pList = sqlite3ExprListAppend(0, X, 0);
-  pList = sqlite3ExprListAppend(pList, Y, 0);
-  A = sqlite3Expr(TK_BETWEEN, W, 0, 0);
-  if( A ){
-    A->pList = pList;
-  }else{
-    sqlite3ExprListDelete(pList);
-  } 
-  if( N ) A = sqlite3Expr(TK_NOT, A, 0, 0);
-  sqlite3ExprSpan(A,&W->span,&Y->span);
+	pParse->sflag |= SQL_FLAG_EXPR;
 }
 %ifndef SQLITE_OMIT_SUBQUERY
   %type in_op {int}
   in_op(A) ::= IN.      {A = 0;}
   in_op(A) ::= NOT IN.  {A = 1;}
   expr(A) ::= expr(X) in_op(N) LP exprlist(Y) RP(E). [IN] {
-    A = sqlite3Expr(TK_IN, X, 0, 0);
-    if( A ){
-      A->pList = Y;
-    }else{
-      sqlite3ExprListDelete(Y);
-    }
-    if( N ) A = sqlite3Expr(TK_NOT, A, 0, 0);
-    sqlite3ExprSpan(A,&X->span,&E);
+	  pParse->sflag |= SQL_FLAG_EXPR;
   }
   expr(A) ::= LP(B) select(X) RP(E). {
-    A = sqlite3Expr(TK_SELECT, 0, 0, 0);
-    if( A ){
-      A->pSelect = X;
-    }else{
-    }
-    sqlite3ExprSpan(A,&B,&E);
+	  pParse->sflag |= SQL_FLAG_EXPR;
   }
   expr(A) ::= expr(X) in_op(N) LP select(Y) RP(E).  [IN] {
-    A = sqlite3Expr(TK_IN, X, 0, 0);
-    if( A ){
-      A->pSelect = Y;
-    }else{
-    }
-    if( N ) A = sqlite3Expr(TK_NOT, A, 0, 0);
-    sqlite3ExprSpan(A,&X->span,&E);
+	  pParse->sflag |= SQL_FLAG_EXPR;
   }
   expr(A) ::= expr(X) in_op(N) nm(Y) dbnm(Z). [IN] {
-    SrcList *pSrc = sqlite3SrcListAppend(0,&Y,&Z);
-    A = sqlite3Expr(TK_IN, X, 0, 0);
-    if( A ){
-      pParse->select_num++;
-    }else{
-      sqlite3SrcListDelete(pSrc);
-    }
-    if( N ) A = sqlite3Expr(TK_NOT, A, 0, 0);
-    sqlite3ExprSpan(A,&X->span,Z.z?&Z:&Y);
+	  pParse->sflag |= SQL_FLAG_EXPR;
   }
   expr(A) ::= EXISTS(B) LP select(Y) RP(E). {
-    Expr *p = A = sqlite3Expr(TK_EXISTS, 0, 0, 0);
-    if( p ){
-      p->pSelect = Y;
-      sqlite3ExprSpan(p,&B,&E);
-    }else{
-    }
+	  pParse->sflag |= SQL_FLAG_EXPR;
   }
 %endif // SQLITE_OMIT_SUBQUERY
 
 /* CASE expressions */
 expr(A) ::= CASE(C) case_operand(X) case_exprlist(Y) case_else(Z) END(E). {
-  A = sqlite3Expr(TK_CASE, X, Z, 0);
-  if( A ){
-    A->pList = Y;
-  }else{
-    sqlite3ExprListDelete(Y);
-  }
-  sqlite3ExprSpan(A, &C, &E);
+  pParse->sflag |= SQL_FLAG_EXPR;
 }
 %type case_exprlist {ExprList*}
-%destructor case_exprlist {sqlite3ExprListDelete($$);}
+%destructor case_exprlist { }
 case_exprlist(A) ::= case_exprlist(X) WHEN expr(Y) THEN expr(Z). {
-  A = sqlite3ExprListAppend(X, Y, 0);
-  A = sqlite3ExprListAppend(A, Z, 0);
+  pParse->sflag |= SQL_FLAG_EXPR;
 }
 case_exprlist(A) ::= WHEN expr(Y) THEN expr(Z). {
-  A = sqlite3ExprListAppend(0, Y, 0);
-  A = sqlite3ExprListAppend(A, Z, 0);
+  pParse->sflag |= SQL_FLAG_EXPR;
 }
 %type case_else {Expr*}
-%destructor case_else {sqlite3ExprDelete($$);}
+%destructor case_else {}
 case_else(A) ::=  ELSE expr(X).         {A = X;}
 case_else(A) ::=  .                     {A = 0;} 
 %type case_operand {Expr*}
-%destructor case_operand {sqlite3ExprDelete($$);}
+%destructor case_operand {}
 case_operand(A) ::= expr(X).            {A = X;} 
 case_operand(A) ::= .                   {A = 0;} 
 
 %type exprlist {ExprList*}
-%destructor exprlist {sqlite3ExprListDelete($$);}
+%destructor exprlist { }
 %type expritem {Expr*}
-%destructor expritem {sqlite3ExprDelete($$);}
+%destructor expritem { }
 
 exprlist(A) ::= exprlist(X) COMMA expritem(Y). 
-                                        {A = sqlite3ExprListAppend(X,Y,0);}
-exprlist(A) ::= expritem(X).            {A = sqlite3ExprListAppend(0,X,0);}
+                                        {pParse->sflag |= SQL_FLAG_EXPR;}
+exprlist(A) ::= expritem(X).            {pParse->sflag |= SQL_FLAG_EXPR;}
 expritem(A) ::= expr(X).                {A = X;}
 expritem(A) ::= .                       {A = 0;}
 
@@ -903,30 +795,18 @@ expritem(A) ::= .                       {A = 0;}
 //uniqueflag(A) ::= .        {A = OE_None;}
 
 %type idxlist {ExprList*}
-%destructor idxlist {sqlite3ExprListDelete($$);}
+%destructor idxlist { }
 %type idxlist_opt {ExprList*}
-%destructor idxlist_opt {sqlite3ExprListDelete($$);}
+%destructor idxlist_opt {}
 %type idxitem {Token}
 
 idxlist_opt(A) ::= .                         {A = 0;}
 idxlist_opt(A) ::= LP idxlist(X) RP.         {A = X;}
 idxlist(A) ::= idxlist(X) COMMA idxitem(Y) collate(C) sortorder(Z).  {
-  Expr *p = 0;
-  if( C.n>0 ){
-    p = sqlite3Expr(TK_COLUMN, 0, 0, 0);
-    if( p ) p->pColl = sqlite3LocateCollSeq(pParse, (char*)C.z, C.n);
-  }
-  A = sqlite3ExprListAppend(X, p, &Y);
-  if( A ) A->a[A->nExpr-1].sortOrder = Z;
+	pParse->sflag |= SQL_FLAG_EXPR;
 }
 idxlist(A) ::= idxitem(Y) collate(C) sortorder(Z). {
-  Expr *p = 0;
-  if( C.n>0 ){
-    p = sqlite3Expr(TK_COLUMN, 0, 0, 0);
-    if( p ) p->pColl = sqlite3LocateCollSeq(pParse, (char*)C.z, C.n);
-  }
-  A = sqlite3ExprListAppend(0, p, &Y);
-  if( A ) A->a[A->nExpr-1].sortOrder = Z;
+	pParse->sflag |= SQL_FLAG_EXPR;
 }
 idxitem(A) ::= nm(X).              {A = X;}
 
@@ -1121,13 +1001,13 @@ cmd ::= SET CHARACTER SET ids(X). {
 }
 
 %type variable_assignment_list {ExprList*}
-%destructor variable_assignment_list { sqlite3ExprListDelete($$); }
+%destructor variable_assignment_list { }
 variable_assignment_list(A) ::= variable_assignment_list(L) COMMA scope_qualifier user_var_name(N) EQ expr(E). {
-    A = sqlite3ExprListAppend(L, E, &N);
+	  pParse->sflag |= SQL_FLAG_EXPR;
 }
 
 variable_assignment_list(A) ::= scope_qualifier user_var_name(N) EQ expr(E). {
-    A = sqlite3ExprListAppend(0, E, &N);                         
+	  pParse->sflag |= SQL_FLAG_EXPR;
 }
 
 // @@global or @@session or @@local
@@ -1173,9 +1053,6 @@ full_keyword ::= .
 
 show_statement_pattern ::= LIKE_KW STRING|ID.
 show_statement_pattern ::= where_opt(A). {
-    if (A) {
-        sqlite3ExprDelete(A);
-    }
 }
 
 from_db ::= .

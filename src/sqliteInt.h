@@ -1337,6 +1337,7 @@ struct Parse {
 #define SQL_FLAG_INSERT		0x04
 #define SQL_FLAG_SELECT		0x08
 #define SQL_FLAG_JOIN			0x10
+#define SQL_FLAG_EXPR			0x20
 	int sflag;					 /* Flag for sqli state */
 	int select_num;			 /* select counter */
   char *zErrMsg;       /* An error message */
@@ -1607,15 +1608,6 @@ void sqlite3DequoteExpr(Expr*);
 int sqlite3KeywordCode(const unsigned char*, int);
 int sqlite3RunParser(Parse*, const char*, char **);
 void sqlite3FinishCoding(Parse*);
-Expr *sqlite3Expr(int, Expr*, Expr*, const Token*);
-Expr *sqlite3RegisterExpr(Parse*,Token*);
-Expr *sqlite3ExprAnd(Expr*, Expr*);
-void sqlite3ExprSpan(Expr*,Token*,Token*);
-Expr *sqlite3ExprFunction(ExprList*, Token*);
-void sqlite3ExprAssignVarNumber(Parse*, Expr*);
-void sqlite3ExprDelete(Expr*);
-ExprList *sqlite3ExprListAppend(ExprList*,Expr*,Token*);
-void sqlite3ExprListDelete(ExprList*);
 int sqlite3Init(sqlite3*, char**);
 int sqlite3InitCallback(void*, int, char**, char**);
 void sqlite3Pragma(Parse*,Token*,Token*,Token*,int);
@@ -1881,8 +1873,6 @@ void sqlite3UpdateDelete(Update* updateObj);
 SetStatement* sqlite3SetStatementNew(ExprList *pList, Token *pValue);
 void sqlite3SetStatementDelete(SetStatement* setObj);
 
-ValuesList *sqlite3ValuesListAppend(ValuesList *valueList, ExprList *exprList);
-void sqlite3ValuesListDelete(ValuesList *valuesList);
 
 void sqlite3SetStatement(Parse *pParse, ExprList *pExprList, Token *pToken, SqlType sqltype);
 void sqlite3CheckSetScope(Parse *pParse, Token *pScope);

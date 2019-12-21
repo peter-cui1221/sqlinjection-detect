@@ -464,7 +464,7 @@ static void sqliteResetColumnNames(Table *pTable){
   if( (pCol = pTable->aCol)!=0 ){
     for(i=0; i<pTable->nCol; i++, pCol++){
       sqliteFree(pCol->zName);
-      sqlite3ExprDelete(pCol->pDflt);
+      //sqlite3ExprDelete(pCol->pDflt);
       sqliteFree(pCol->zType);
       sqliteFree(pCol->zColl);
     }
@@ -2080,7 +2080,7 @@ void sqlite3CreateIndex(
   int ifNotExist     /* Omit error if index already exists */
 ){
     sqlite3SrcListDelete(pTblName);
-    sqlite3ExprListDelete(pList);
+    //sqlite3ExprListDelete(pList);
 }
 
 
@@ -2394,7 +2394,7 @@ void sqlite3SrcListDelete(SrcList *pList){
     sqliteFree(pItem->zAlias);
     //sqlite3DeleteTable(0, pItem->pTab);
     //sqlite3SelectDelete(pItem->pSelect);
-    sqlite3ExprDelete(pItem->pOn);
+    //sqlite3ExprDelete(pItem->pOn);
     sqlite3IdListDelete(pItem->pUsing);
   }
   sqliteFree(pList);
@@ -2708,13 +2708,13 @@ SetStatement* sqlite3SetStatementNew(ExprList *pList, Token *pValue) {
 void sqlite3SetStatementDelete(SetStatement *setObj) {
     if (setObj == NULL) return;
 
-    sqlite3ExprListDelete(setObj->pSetList);
+    //sqlite3ExprListDelete(setObj->pSetList);
     sqliteFree(setObj);
 }
 
 void sqlite3SetStatement(Parse *pParse, ExprList *pExprList, Token *pToken, SqlType sqltype) {
     if (pParse->nErr > 0) { 
-        sqlite3ExprListDelete(pExprList);
+        //sqlite3ExprListDelete(pExprList);
         return; 
     }
     SetStatement *setObj = sqlite3SetStatementNew(pExprList, pToken);   
