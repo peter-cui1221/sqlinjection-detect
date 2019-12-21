@@ -675,15 +675,16 @@ term(A) ::= CTIME_KW(OP). {
   ** treated as functions that return constants */
 	pParse->sflag |= SQL_FLAG_EXPR;
 }
-expr(A) ::= expr(X) AND(OP) expr(Y).            {pParse->sflag |= SQL_FLAG_EXPR;}
-expr(A) ::= expr(X) OR(OP) expr(Y).             {pParse->sflag |= SQL_FLAG_EXPR;}
-expr(A) ::= expr(X) LT|GT|GE|LE(OP) expr(Y).    {pParse->sflag |= SQL_FLAG_EXPR;}
-expr(A) ::= expr(X) EQ|NE(OP) expr(Y).          {pParse->sflag |= SQL_FLAG_EXPR;}
+expr(A) ::= expr(X) AND(OP) expr(Y).            {pParse->sflag |= SQL_FLAG_OPT;}
+expr(A) ::= expr(X) OR(OP) expr(Y).             {pParse->sflag |= SQL_FLAG_OPT;}
+expr(A) ::= expr(X) LT|GT|GE|LE(OP) expr(Y).    {pParse->sflag |= SQL_FLAG_OPT;}
+expr(A) ::= expr(X) EQ(OP) expr(Y).          {pParse->sflag |= SQL_FLAG_EXPR;}
+expr(A) ::= expr(X) NE(OP) expr(Y).          {pParse->sflag |= SQL_FLAG_OPT;}
 expr(A) ::= expr(X) BITAND|BITOR|LSHIFT|RSHIFT(OP) expr(Y).
-                                                {pParse->sflag |= SQL_FLAG_EXPR;}
-expr(A) ::= expr(X) PLUS|MINUS(OP) expr(Y).     {pParse->sflag |= SQL_FLAG_EXPR;}
-expr(A) ::= expr(X) STAR|SLASH|REM(OP) expr(Y). {pParse->sflag |= SQL_FLAG_EXPR;}
-expr(A) ::= expr(X) CONCAT(OP) expr(Y).         {pParse->sflag |= SQL_FLAG_EXPR;}
+                                                {pParse->sflag |= SQL_FLAG_OPT;}
+expr(A) ::= expr(X) PLUS|MINUS(OP) expr(Y).     {pParse->sflag |= SQL_FLAG_OPT;}
+expr(A) ::= expr(X) STAR|SLASH|REM(OP) expr(Y). {pParse->sflag |= SQL_FLAG_OPT;}
+expr(A) ::= expr(X) CONCAT(OP) expr(Y).         {pParse->sflag |= SQL_FLAG_OPT;}
 %type likeop {struct LikeOp}
 likeop(A) ::= LIKE_KW(X).     {A.eOperator = X; A.not = 0;}
 likeop(A) ::= NOT LIKE_KW(X). {A.eOperator = X; A.not = 1;}
