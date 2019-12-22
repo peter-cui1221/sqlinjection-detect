@@ -380,7 +380,6 @@ ifexists(A) ::= .            {A = 0;}
 //////////////////////// The SELECT statement /////////////////////////////////
 //
 cmd ::= select.  {
-  pParse->select_num++;
 }
 
 %type select {Select*}
