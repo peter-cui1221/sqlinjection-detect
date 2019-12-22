@@ -282,8 +282,8 @@ ccons ::= NOT NULL onconf.               {/*sqlite3AddNotNull(pParse, R);*/}
 ccons ::= PRIMARY KEY sortorder onconf.
                                      {/*sqlite3AddPrimaryKey(pParse,0,R,I,Z);*/}
 ccons ::= UNIQUE onconf.    {/*sqlite3CreateIndex(pParse,0,0,0,0,R,0,0,0,0);*/}
-ccons ::= CHECK LP expr(E) RP.       { }
-ccons ::= REFERENCES nm idxlist_opt(X) refargs.
+ccons ::= CHECK LP expr RP.       { }
+ccons ::= REFERENCES nm idxlist_opt refargs.
                                 { }
 ccons ::= defer_subclause.   {/*sqlite3DeferForeignKey(pParse,D);*/}
 ccons ::= COLLATE id.  {/*sqlite3AddCollateType(pParse, (char*)C.z, C.n);*/}
@@ -331,12 +331,12 @@ tcons ::= CONSTRAINT nm.
 
 // -- TODO --
 // idxlist and idxlist_opt need to explicit call its destructor, or will make memleak, do not know why it don't call automatically...
-tcons ::= PRIMARY KEY LP idxlist(X) autoinc RP onconf. { }
-tcons ::= UNIQUE LP idxlist(X) RP onconf.
+tcons ::= PRIMARY KEY LP idxlist autoinc RP onconf. { }
+tcons ::= UNIQUE LP idxlist RP onconf.
                                  { }
-tcons ::= CHECK LP expr(E) RP onconf. { }
-tcons ::= FOREIGN KEY LP idxlist(X) RP
-          REFERENCES nm idxlist_opt(Y) refargs defer_subclause_opt. { 
+tcons ::= CHECK LP expr RP onconf. { }
+tcons ::= FOREIGN KEY LP idxlist RP
+          REFERENCES nm idxlist_opt refargs defer_subclause_opt. { 
  }
 
 %type defer_subclause_opt {int}
@@ -359,7 +359,7 @@ resolvetype(A) ::= REPLACE.                  {A = OE_Replace;}
 
 ////////////////////////// The DROP TABLE /////////////////////////////////////
 //
-cmd ::= DROP TABLE ifexists(E) fullname(X). {
+cmd ::= DROP TABLE ifexists fullname. {
   pParse->sflag |= SQL_FLAG_TABLE;
 }
 %type ifexists {int}
@@ -379,7 +379,7 @@ ifexists(A) ::= .            {A = 0;}
 
 //////////////////////// The SELECT statement /////////////////////////////////
 //
-cmd ::= select(X).  {
+cmd ::= select.  {
   pParse->select_num++;
 }
 
@@ -402,8 +402,8 @@ multiselect_op(A) ::= UNION(OP).             {A = @OP;}
 multiselect_op(A) ::= UNION ALL.             {A = TK_ALL;}
 multiselect_op(A) ::= EXCEPT|INTERSECT(OP).  {A = @OP;}
 %endif // SQLITE_OMIT_COMPOUND_SELECT
-oneselect(A) ::= SELECT distinct(D) selcollist(W) from(X) where_opt(Y)
-                 groupby_opt(P) having_opt(Q) orderby_opt(Z) limit_opt(L). {
+oneselect ::= SELECT distinct selcollist from where_opt
+                 groupby_opt having_opt orderby_opt limit_opt. {
   pParse->select_num++;
 }
 
@@ -426,13 +426,13 @@ distinct(A) ::= .           {A = 0;}
 %destructor sclp { }
 sclp(A) ::= selcollist(X) COMMA.             {A = X;}
 sclp(A) ::= .                                {A = 0;}
-selcollist(A) ::= sclp(P) expr(X) as(Y).     {
+selcollist ::= sclp expr as.     {
   pParse->sflag |= SQL_FLAG_EXPR;
 }
-selcollist(A) ::= sclp(P) STAR. {
+selcollist ::= sclp STAR. {
   pParse->sflag |= SQL_FLAG_EXPR;
 }
-selcollist(A) ::= sclp(P) nm(X) DOT STAR. {
+selcollist ::= sclp nm DOT STAR. {
   pParse->sflag |= SQL_FLAG_EXPR;
 }
 
@@ -465,12 +465,12 @@ stl_prefix(A) ::= seltablist(X) joinop(Y).    {
    if( A && A->nSrc>0 ) A->a[A->nSrc-1].jointype = Y;
 }
 stl_prefix(A) ::= .                           {A = 0;}
-seltablist(A) ::= stl_prefix(X) nm(Y) dbnm(D) as(Z) on_opt(N) using_opt(U). {
+seltablist ::= stl_prefix nm dbnm as on_opt using_opt. {
   pParse->sflag |= SQL_FLAG_EXPR;
 }
 %ifndef SQLITE_OMIT_SUBQUERY
-  seltablist(A) ::= stl_prefix(X) LP seltablist_paren(S) RP
-                    as(Z) on_opt(N) using_opt(U). {
+  seltablist ::= stl_prefix LP seltablist_paren RP
+                    as on_opt using_opt. {
   pParse->sflag |= SQL_FLAG_EXPR;
 }
   
@@ -481,7 +481,7 @@ seltablist(A) ::= stl_prefix(X) nm(Y) dbnm(D) as(Z) on_opt(N) using_opt(U). {
   %type seltablist_paren {Select*}
   %destructor seltablist_paren { }
   seltablist_paren(A) ::= select(S).      {A = S;}
-  seltablist_paren(A) ::= seltablist(F).  {
+  seltablist_paren ::= seltablist.  {
      pParse->select_num++;
   }
 %endif // SQLITE_OMIT_SUBQUERY
@@ -492,14 +492,14 @@ dbnm(A) ::= DOT nm(X). {A = X;}
 
 %type fullname {SrcList*}
 %destructor fullname {}
-fullname(A) ::= nm(X) dbnm(Y).  {  pParse->sflag |= SQL_FLAG_LIST; }
+fullname ::= nm dbnm.  {  pParse->sflag |= SQL_FLAG_LIST; }
 
 %type joinop {int}
 %type joinop2 {int}
 joinop(X) ::= COMMA|JOIN.              { X = JT_INNER; }
-joinop(X) ::= JOIN_KW(A) JOIN.         { pParse->sflag |= SQL_FLAG_JOIN; }
-joinop(X) ::= JOIN_KW(A) nm(B) JOIN.   { pParse->sflag |= SQL_FLAG_JOIN; }
-joinop(X) ::= JOIN_KW(A) nm(B) nm(C) JOIN.
+joinop ::= JOIN_KW JOIN.         { pParse->sflag |= SQL_FLAG_JOIN; }
+joinop ::= JOIN_KW nm JOIN.   { pParse->sflag |= SQL_FLAG_JOIN; }
+joinop ::= JOIN_KW nm nm JOIN.
                                        { pParse->sflag |= SQL_FLAG_JOIN; }
 
 %type on_opt {Expr*}
@@ -522,10 +522,10 @@ using_opt(U) ::= .                        {U = 0;}
 
 orderby_opt(A) ::= .                          {A = 0;}
 orderby_opt(A) ::= ORDER BY sortlist(X).      {A = X;}
-sortlist(A) ::= sortlist(X) COMMA sortitem(Y) collate(C) sortorder(Z). {
+sortlist ::= sortlist COMMA sortitem collate sortorder. {
 	pParse->sflag |= SQL_FLAG_EXPR;
 }
-sortlist(A) ::= sortitem(Y) collate(C) sortorder(Z). {
+sortlist ::= sortitem collate sortorder. {
 	pParse->sflag |= SQL_FLAG_EXPR;
 }
 sortitem(A) ::= expr(X).   {A = X;}
@@ -561,7 +561,7 @@ limit_opt(A) ::= LIMIT expr(X) COMMA expr(Y).
 
 /////////////////////////// The DELETE statement /////////////////////////////
 //
-cmd ::= DELETE FROM fullname(X) where_opt(Y) limit_opt(L). {pParse->sflag |= SQL_FLAG_DELETE;}
+cmd ::= DELETE FROM fullname where_opt limit_opt. {pParse->sflag |= SQL_FLAG_DELETE;}
 
 %type where_opt {Expr*}
 %destructor where_opt { }
@@ -572,34 +572,34 @@ where_opt(A) ::= WHERE expr(X).       {A = X;}
 ////////////////////////// The UPDATE command ////////////////////////////////
 //
 //cmd ::= UPDATE orconf(R) fullname(X) SET setlist(Y) where_opt(Z).
-cmd ::= UPDATE fullname(X) SET setlist(Y) where_opt(Z) limit_opt(L).
+cmd ::= UPDATE fullname SET setlist where_opt limit_opt.
     {pParse->sflag |= SQL_FLAG_UPDATE;}
 
 %type setlist {ExprList*}
 %destructor setlist { }
 
-setlist(A) ::= setlist(Z) COMMA nm(X) EQ expr(Y).
+setlist ::= setlist COMMA nm EQ expr.
     {pParse->sflag |= SQL_FLAG_EXPR;}
-setlist(A) ::= nm(X) EQ expr(Y).   {pParse->sflag |= SQL_FLAG_EXPR;}
+setlist ::= nm EQ expr.   {pParse->sflag |= SQL_FLAG_EXPR;}
 
 ////////////////////////// The INSERT command /////////////////////////////////
 //
 /* cmd ::= insert_cmd(R) INTO fullname(X) inscollist_opt(F) */ 
 /*         VALUES LP itemlist(Y) RP. */
 /*             {sqlite3Insert(pParse, X, Y, 0, F, R);} */
-cmd ::= insert_cmd(R) INTO fullname(X) inscollist_opt(F) 
-        VALUES valueslist(VL).
+cmd ::= insert_cmd INTO fullname inscollist_opt 
+        VALUES valueslist.
             {pParse->sflag |= SQL_FLAG_INSERT;}
 
-cmd ::= insert_cmd(R) INTO fullname(X) inscollist_opt(F)
-        SET setlist(SL). 
+cmd ::= insert_cmd INTO fullname inscollist_opt
+        SET setlist. 
             {pParse->sflag |= SQL_FLAG_INSERT;}
 
-cmd ::= insert_cmd(R) fullname(X) inscollist_opt(F)
-        SET setlist(SL). 
+cmd ::= insert_cmd fullname inscollist_opt
+        SET setlist. 
             {pParse->sflag |= SQL_FLAG_INSERT;}
 
-cmd ::= insert_cmd(R) INTO fullname(X) inscollist_opt(F) select(S).
+cmd ::= insert_cmd INTO fullname inscollist_opt select.
             {pParse->sflag |= SQL_FLAG_INSERT;}
 
 %type insert_cmd {int}
@@ -610,15 +610,15 @@ insert_cmd(A) ::= REPLACE.            {A = OE_Replace;}
 %type valueslist {ValuesList*}
 %destructor valueslist { }
 
-valueslist(VL) ::= valueslist(V) COMMA LP itemlist(Y) RP.   { pParse->sflag |= SQL_FLAG_EXPR; }
-valueslist(VL) ::= LP itemlist(Y) RP.                       { pParse->sflag |= SQL_FLAG_EXPR; }
+valueslist ::= valueslist COMMA LP itemlist RP.   { pParse->sflag |= SQL_FLAG_EXPR; }
+valueslist ::= LP itemlist RP.                       { pParse->sflag |= SQL_FLAG_EXPR; }
 valueslist(VL) ::= LP RP.                                   { VL = 0; }
 
 %type itemlist {ExprList*}
 %destructor itemlist { }
 
-itemlist(A) ::= itemlist(X) COMMA expr(Y).  {pParse->sflag |= SQL_FLAG_EXPR;}
-itemlist(A) ::= expr(X).                    {pParse->sflag |= SQL_FLAG_EXPR;}
+itemlist ::= itemlist COMMA expr.  {pParse->sflag |= SQL_FLAG_EXPR;}
+itemlist ::= expr.                    {pParse->sflag |= SQL_FLAG_EXPR;}
 
 %type inscollist_opt {IdList*}
 %destructor inscollist_opt {}
@@ -628,8 +628,8 @@ itemlist(A) ::= expr(X).                    {pParse->sflag |= SQL_FLAG_EXPR;}
 inscollist_opt(A) ::= .                       {A = 0;}
 inscollist_opt(A) ::= LP RP.                  {A = 0;}
 inscollist_opt(A) ::= LP inscollist(X) RP.    {A = X;}
-inscollist(A) ::= inscollist(X) COMMA nm(Y).  { pParse->sflag |= SQL_FLAG_LIST;}
-inscollist(A) ::= nm(Y).                      { pParse->sflag |= SQL_FLAG_LIST;}
+inscollist ::= inscollist COMMA nm.  { pParse->sflag |= SQL_FLAG_LIST;}
+inscollist ::= nm.                      { pParse->sflag |= SQL_FLAG_LIST;}
                            
 /////////////////////////// Expression Processing /////////////////////////////
 //
@@ -640,51 +640,51 @@ inscollist(A) ::= nm(Y).                      { pParse->sflag |= SQL_FLAG_LIST;}
 %destructor term {}
 
 expr(A) ::= term(X).             {A = X;}
-expr(A) ::= LP(B) expr(X) RP(E). {pParse->sflag |= SQL_FLAG_EXPR;}
-term(A) ::= NULL(X).             {pParse->sflag |= SQL_FLAG_EXPR;}
-expr(A) ::= ID(X).               {pParse->sflag |= SQL_FLAG_EXPR;}
-expr(A) ::= JOIN_KW(X).          {pParse->sflag |= SQL_FLAG_EXPR;}
-expr(A) ::= nm(X) DOT nm(Y). {
+expr ::= LP expr RP. {pParse->sflag |= SQL_FLAG_EXPR;}
+term ::= NULL.             {pParse->sflag |= SQL_FLAG_EXPR;}
+expr ::= ID.               {pParse->sflag |= SQL_FLAG_EXPR;}
+expr ::= JOIN_KW.          {pParse->sflag |= SQL_FLAG_EXPR;}
+expr ::= nm DOT nm. {
 	pParse->sflag |= SQL_FLAG_EXPR;
 }
-expr(A) ::= nm(X) DOT nm(Y) DOT nm(Z). {
+expr ::= nm DOT nm DOT nm. {
 	pParse->sflag |= SQL_FLAG_EXPR;
 }
-term(A) ::= INTEGER|FLOAT|BLOB(X).      {pParse->sflag |= SQL_FLAG_EXPR;}
-term(A) ::= STRING(X).       {pParse->sflag |= SQL_FLAG_EXPR;}
-expr(A) ::= REGISTER(X).     {pParse->sflag |= SQL_FLAG_EXPR;}
-expr(A) ::= VARIABLE(X).     {
+term ::= INTEGER|FLOAT|BLOB.      {pParse->sflag |= SQL_FLAG_EXPR;}
+term ::= STRING.       {pParse->sflag |= SQL_FLAG_EXPR;}
+expr ::= REGISTER.     {pParse->sflag |= SQL_FLAG_EXPR;}
+expr ::= VARIABLE.     {
 	pParse->sflag |= SQL_FLAG_EXPR;
 }
-expr(A) ::= VARIABLE1(X).     {
+expr ::= VARIABLE1.     {
 	pParse->sflag |= SQL_FLAG_EXPR;
 }
 %ifndef SQLITE_OMIT_CAST
-expr(A) ::= CAST(X) LP expr(E) AS typetoken(T) RP(Y). {
+expr ::= CAST LP expr AS typetoken RP. {
 	pParse->sflag |= SQL_FLAG_EXPR;
 }
 %endif // SQLITE_OMIT_CAST
-expr(A) ::= ID(X) LP distinct(D) exprlist(Y) RP(E). {
+expr ::= ID LP distinct exprlist RP. {
 	pParse->sflag |= SQL_FLAG_EXPR;
 }
-expr(A) ::= ID(X) LP STAR RP(E). {
+expr ::= ID LP STAR RP. {
 	pParse->sflag |= SQL_FLAG_EXPR;
 }
-term(A) ::= CTIME_KW(OP). {
+term ::= CTIME_KW. {
   /* The CURRENT_TIME, CURRENT_DATE, and CURRENT_TIMESTAMP values are
   ** treated as functions that return constants */
 	pParse->sflag |= SQL_FLAG_EXPR;
 }
-expr(A) ::= expr(X) AND(OP) expr(Y).            {pParse->sflag |= SQL_FLAG_OPT;}
-expr(A) ::= expr(X) OR(OP) expr(Y).             {pParse->sflag |= SQL_FLAG_OPT;}
-expr(A) ::= expr(X) LT|GT|GE|LE(OP) expr(Y).    {pParse->sflag |= SQL_FLAG_OPT;}
-expr(A) ::= expr(X) EQ(OP) expr(Y).          {pParse->sflag |= SQL_FLAG_EXPR;}
-expr(A) ::= expr(X) NE(OP) expr(Y).          {pParse->sflag |= SQL_FLAG_OPT;}
-expr(A) ::= expr(X) BITAND|BITOR|LSHIFT|RSHIFT(OP) expr(Y).
+expr ::= expr AND expr.            {pParse->sflag |= SQL_FLAG_OPT;}
+expr ::= expr OR expr.             {pParse->sflag |= SQL_FLAG_OPT;}
+expr ::= expr LT|GT|GE|LE expr.    {pParse->sflag |= SQL_FLAG_OPT;}
+expr ::= expr EQ expr.          {pParse->sflag |= SQL_FLAG_EXPR;}
+expr ::= expr NE expr.          {pParse->sflag |= SQL_FLAG_OPT;}
+expr ::= expr BITAND|BITOR|LSHIFT|RSHIFT expr.
                                                 {pParse->sflag |= SQL_FLAG_OPT;}
-expr(A) ::= expr(X) PLUS|MINUS(OP) expr(Y).     {pParse->sflag |= SQL_FLAG_OPT;}
-expr(A) ::= expr(X) STAR|SLASH|REM(OP) expr(Y). {pParse->sflag |= SQL_FLAG_OPT;}
-expr(A) ::= expr(X) CONCAT(OP) expr(Y).         {pParse->sflag |= SQL_FLAG_OPT;}
+expr ::= expr PLUS|MINUS expr.     {pParse->sflag |= SQL_FLAG_OPT;}
+expr ::= expr STAR|SLASH|REM expr. {pParse->sflag |= SQL_FLAG_OPT;}
+expr ::= expr CONCAT expr.         {pParse->sflag |= SQL_FLAG_OPT;}
 %type likeop {struct LikeOp}
 likeop(A) ::= LIKE_KW(X).     {A.eOperator = X; A.not = 0;}
 likeop(A) ::= NOT LIKE_KW(X). {A.eOperator = X; A.not = 1;}
@@ -692,29 +692,29 @@ likeop(A) ::= NOT LIKE_KW(X). {A.eOperator = X; A.not = 1;}
 %destructor escape {}
 escape(X) ::= ESCAPE expr(A). [ESCAPE] {X = A;}
 escape(X) ::= .               [ESCAPE] {X = 0;}
-expr(A) ::= expr(X) likeop(OP) expr(Y) escape(E).  [LIKE_KW]  {
+expr ::= expr likeop expr escape.  [LIKE_KW]  {
 	pParse->sflag |= SQL_FLAG_EXPR;
 }
 
-expr(A) ::= expr(X) ISNULL|NOTNULL(E). {
+expr ::= expr ISNULL|NOTNULL. {
 	pParse->sflag |= SQL_FLAG_EXPR;
 }
-expr(A) ::= expr(X) IS NULL(E). {
+expr ::= expr IS NULL. {
 	pParse->sflag |= SQL_FLAG_EXPR;
 }
-expr(A) ::= expr(X) NOT NULL(E). {
+expr ::= expr NOT NULL. {
 	pParse->sflag |= SQL_FLAG_EXPR;
 }
-expr(A) ::= expr(X) IS NOT NULL(E). {
+expr ::= expr IS NOT NULL. {
 	pParse->sflag |= SQL_FLAG_EXPR;
 }
-expr(A) ::= NOT|BITNOT(B) expr(X). {
+expr ::= NOT|BITNOT expr. {
 	pParse->sflag |= SQL_FLAG_EXPR;
 }
-expr(A) ::= MINUS(B) expr(X). [UMINUS] {
+expr ::= MINUS expr. [UMINUS] {
 	pParse->sflag |= SQL_FLAG_EXPR;
 }
-expr(A) ::= PLUS(B) expr(X). [UPLUS] {
+expr ::= PLUS expr. [UPLUS] {
 	pParse->sflag |= SQL_FLAG_EXPR;
 }
 %type between_op {int}
@@ -724,43 +724,43 @@ between_op(A) ::= NOT BETWEEN. {A = 1;}
 %type between_elem {Expr*}
 %destructor between_elem {}
 
-between_elem(A) ::= INTEGER|STRING(B). {pParse->sflag |= SQL_FLAG_EXPR;}
+between_elem ::= INTEGER|STRING. {pParse->sflag |= SQL_FLAG_EXPR;}
 
 //expr(A) ::= expr(W) between_op(N) expr(X) AND expr(Y). [BETWEEN] {
-expr(A) ::= expr(W) between_op(N) between_elem(X) AND between_elem(Y). [BETWEEN] {
+expr ::= expr between_op between_elem AND between_elem. [BETWEEN] {
 	pParse->sflag |= SQL_FLAG_EXPR;
 }
 %ifndef SQLITE_OMIT_SUBQUERY
   %type in_op {int}
   in_op(A) ::= IN.      {A = 0;}
   in_op(A) ::= NOT IN.  {A = 1;}
-  expr(A) ::= expr(X) in_op(N) LP exprlist(Y) RP(E). [IN] {
+  expr ::= expr in_op LP exprlist RP. [IN] {
 	  pParse->sflag |= SQL_FLAG_EXPR;
   }
-  expr(A) ::= LP(B) select(X) RP(E). {
+  expr ::= LP select RP. {
 	  pParse->sflag |= SQL_FLAG_EXPR;
   }
-  expr(A) ::= expr(X) in_op(N) LP select(Y) RP(E).  [IN] {
+  expr ::= expr in_op LP select RP.  [IN] {
 	  pParse->sflag |= SQL_FLAG_EXPR;
   }
-  expr(A) ::= expr(X) in_op(N) nm(Y) dbnm(Z). [IN] {
+  expr ::= expr in_op nm dbnm. [IN] {
 	  pParse->sflag |= SQL_FLAG_EXPR;
   }
-  expr(A) ::= EXISTS(B) LP select(Y) RP(E). {
+  expr ::= EXISTS LP select RP. {
 	  pParse->sflag |= SQL_FLAG_EXPR;
   }
 %endif // SQLITE_OMIT_SUBQUERY
 
 /* CASE expressions */
-expr(A) ::= CASE(C) case_operand(X) case_exprlist(Y) case_else(Z) END(E). {
+expr ::= CASE case_operand case_exprlist case_else END. {
   pParse->sflag |= SQL_FLAG_EXPR;
 }
 %type case_exprlist {ExprList*}
 %destructor case_exprlist { }
-case_exprlist(A) ::= case_exprlist(X) WHEN expr(Y) THEN expr(Z). {
+case_exprlist ::= case_exprlist WHEN expr THEN expr. {
   pParse->sflag |= SQL_FLAG_EXPR;
 }
-case_exprlist(A) ::= WHEN expr(Y) THEN expr(Z). {
+case_exprlist ::= WHEN expr THEN expr. {
   pParse->sflag |= SQL_FLAG_EXPR;
 }
 %type case_else {Expr*}
@@ -777,9 +777,9 @@ case_operand(A) ::= .                   {A = 0;}
 %type expritem {Expr*}
 %destructor expritem { }
 
-exprlist(A) ::= exprlist(X) COMMA expritem(Y). 
+exprlist ::= exprlist COMMA expritem. 
                                         {pParse->sflag |= SQL_FLAG_EXPR;}
-exprlist(A) ::= expritem(X).            {pParse->sflag |= SQL_FLAG_EXPR;}
+exprlist ::= expritem.            {pParse->sflag |= SQL_FLAG_EXPR;}
 expritem(A) ::= expr(X).                {A = X;}
 expritem(A) ::= .                       {A = 0;}
 
@@ -803,10 +803,10 @@ expritem(A) ::= .                       {A = 0;}
 
 idxlist_opt(A) ::= .                         {A = 0;}
 idxlist_opt(A) ::= LP idxlist(X) RP.         {A = X;}
-idxlist(A) ::= idxlist(X) COMMA idxitem(Y) collate(C) sortorder(Z).  {
+idxlist ::= idxlist COMMA idxitem collate sortorder.  {
 	pParse->sflag |= SQL_FLAG_EXPR;
 }
-idxlist(A) ::= idxitem(Y) collate(C) sortorder(Z). {
+idxlist ::= idxitem collate sortorder. {
 	pParse->sflag |= SQL_FLAG_EXPR;
 }
 idxitem(A) ::= nm(X).              {A = X;}
@@ -989,25 +989,25 @@ raisetype(A) ::= FAIL.      {A = OE_Fail;}
 
 
 //////////////////////// the SET statement ////////////////////////////////
-cmd ::= SET variable_assignment_list(EL). {
+cmd ::= SET variable_assignment_list. {
 	  pParse->sflag |= SQL_FLAG_STMT;
 }
 
-cmd ::= SET NAMES ids(X).  {
+cmd ::= SET NAMES ids.  {
 	  pParse->sflag |= SQL_FLAG_STMT;
 }
 
-cmd ::= SET CHARACTER SET ids(X). {
+cmd ::= SET CHARACTER SET ids. {
 	  pParse->sflag |= SQL_FLAG_STMT;
 }
 
 %type variable_assignment_list {ExprList*}
 %destructor variable_assignment_list { }
-variable_assignment_list(A) ::= variable_assignment_list(L) COMMA scope_qualifier user_var_name(N) EQ expr(E). {
+variable_assignment_list ::= variable_assignment_list COMMA scope_qualifier user_var_name EQ expr. {
 	  pParse->sflag |= SQL_FLAG_EXPR;
 }
 
-variable_assignment_list(A) ::= scope_qualifier user_var_name(N) EQ expr(E). {
+variable_assignment_list ::= scope_qualifier user_var_name EQ expr. {
 	  pParse->sflag |= SQL_FLAG_EXPR;
 }
 
@@ -1015,7 +1015,7 @@ variable_assignment_list(A) ::= scope_qualifier user_var_name(N) EQ expr(E). {
 scope_qualifier ::= GLOBAL. 
 scope_qualifier ::= LOCAL. 
 scope_qualifier ::= SESSION. 
-scope_qualifier ::= VARIABLE1(V) DOT. { pParse->sflag |= SQL_FLAG_SCOPE; }
+scope_qualifier ::= VARIABLE1 DOT. { pParse->sflag |= SQL_FLAG_SCOPE; }
 scope_qualifier ::= .
 
 %type user_var_name {Token}
@@ -1053,7 +1053,7 @@ full_keyword ::= JOIN_KW.
 full_keyword ::= .
 
 show_statement_pattern ::= LIKE_KW STRING|ID.
-show_statement_pattern ::= where_opt(A). {
+show_statement_pattern ::= where_opt. {
 }
 
 from_db ::= .
