@@ -8,5 +8,6 @@ SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
 
 # add all src file to variable ROOT_SRC
 AUX_SOURCE_DIRECTORY(src ROOT_SRC)
+INCLUDE_DIRECTORIES(src/include)
 
-ADD_EXECUTABLE(sqli_test ${ROOT_SRC})
+ADD_LIBRARY(sqli_detect STATIC ${ROOT_SRC})
