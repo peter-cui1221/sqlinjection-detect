@@ -4,6 +4,10 @@ PROJECT(sqli_detect)
 
 ADD_SUBDIRECTORY(src)
 
+IF (CMAKE_BUILD_TYPE STREQUAL Debug)
+    ADD_DEFINITIONS(-DDEBUG)
+ENDIF()
+
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
 
 # add all src file to variable ROOT_SRC
