@@ -1261,18 +1261,10 @@ struct Parse {
 #define SQL_FLAG_STMT			0x1000
 #define SQL_FLAG_SHOW			0x2000
 #define SQL_FLAG_OPT			0x4000
-	int sflag;					 /* Flag for sqli state */
-	int select_num;			 /* select counter */
+  int sflag;					 /* Flag for sqli state */
+  int select_num;			 /* select counter */
   char *zErrMsg;       /* An error message */
-  //Vdbe *pVdbe;         /* An engine for executing database bytecode */
-  u8 colNamesSet;      /* TRUE after OP_ColumnName has been issued to pVdbe */
-  u8 nameClash;        /* A permanent table name clashes with temp table name */
-  u8 checkSchema;      /* Causes schema cookie check after an error */
-  u8 nested;           /* Number of nested calls to the parser/code generator */
   int nErr;            /* Number of errors seen */
-  int nTab;            /* Number of previously allocated VDBE cursors */
-  int nMem;            /* Number of memory cells used so far */
-  int nSet;            /* Number of sets used so far */
 #ifndef SQLITE_OMIT_SHARED_CACHE
   /* int nTableLock;        /1* Number of locks in aTableLock *1/ */
   /* TableLock *aTableLock; /1* Required table locks for shared-cache mode *1/ */
@@ -1291,13 +1283,6 @@ struct Parse {
   Token sLastToken;    /* The last token parsed */
   const char *zSql;    /* All SQL text */
   const char *zTail;   /* All SQL text past the last semicolon parsed */
-  /* Table *pNewTable;    /1* A table being constructed by CREATE TABLE *1/ */
-  /* Trigger *pNewTrigger;     /1* Trigger under construct by a CREATE TRIGGER *1/ */
-  /* TriggerStack *trigStack;  /1* Trigger actions being coded *1/ */
-  /* const char *zAuthContext; /1* The 6th parameter to db->xAuth callbacks *1/ */
-    
-  ParsedResultArray parsed;
-  TokenArray tokens;
 };
 
 /*

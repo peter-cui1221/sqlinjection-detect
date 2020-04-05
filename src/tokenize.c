@@ -425,12 +425,6 @@ int sqlite3RunParser(Parse *pParse, const char *zSql, char **pzErrMsg){
     pParse->sLastToken.n = getToken((unsigned char*)&zSql[i],&tokenType);
     i += pParse->sLastToken.n;
 
-    if (tokenType != TK_SPACE) { 
-        TokenItem tokenItem;
-        tokenItem.token = pParse->sLastToken;
-        tokenItem.tokenType = tokenType;
-        sqlite3TokenArrayAppend(&pParse->tokens, &tokenItem); 
-    }
     switch( tokenType ){
       case TK_SPACE:
       case TK_COMMENT: {
@@ -471,13 +465,6 @@ abort_parse:
         assert( pParse->sLastToken.dyn==0 );
         pParse->sLastToken.n = getToken((unsigned char*)&zSql[i],&tokenType);
         i += pParse->sLastToken.n;
-
-        if (tokenType != TK_SPACE) { 
-            TokenItem tokenItem;
-            tokenItem.token = pParse->sLastToken;
-            tokenItem.tokenType = tokenType;
-            sqlite3TokenArrayAppend(&pParse->tokens, &tokenItem); 
-        }
     }  
 
   if( zSql[i]==0 && nErr==0 && pParse->rc==SQLITE_OK ){
@@ -559,13 +546,6 @@ int sqlite3RunParser1(Parse *pParse, const char *zSql, int sqlLen, char **pzErrM
     assert( pParse->sLastToken.dyn==0 );
     pParse->sLastToken.n = getToken((unsigned char*)&zSql[i],&tokenType);
     i += pParse->sLastToken.n;
-    
-    if (tokenType != TK_SPACE) {
-        TokenItem tokenItem;
-        tokenItem.token = pParse->sLastToken;
-        tokenItem.tokenType = tokenType;
-        sqlite3TokenArrayAppend(&pParse->tokens, &tokenItem);
-    }
 
     switch( tokenType ){
       case TK_SPACE:
@@ -607,13 +587,6 @@ abort_parse:
         assert( pParse->sLastToken.dyn==0 );
         pParse->sLastToken.n = getToken((unsigned char*)&zSql[i],&tokenType);
         i += pParse->sLastToken.n;
-
-        if (tokenType != TK_SPACE) {
-            TokenItem tokenItem;
-            tokenItem.token = pParse->sLastToken;
-            tokenItem.tokenType = tokenType;
-            sqlite3TokenArrayAppend(&pParse->tokens, &tokenItem);
-        }
     }  
 
   if( zSql[i]==0 && nErr==0 && pParse->rc==SQLITE_OK ){
