@@ -25,6 +25,7 @@ static int do_check_sqli(char *prefix, char *postfix, char *input, int len)
     }
     if (errMsg != NULL) {
 	    SQLI_DEBUG("error: %s, error_code:%d \n", errMsg, parseObj.rc);
+        sqliteFree(errMsg);
         free(buf);
         return 0;
     }

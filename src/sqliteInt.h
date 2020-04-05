@@ -1495,53 +1495,13 @@ int sqlite3CheckObjectName(Parse *, const char *);
 void sqlite3VdbeSetChanges(sqlite3 *, int);
 void sqlite3utf16Substr(sqlite3_context *,int,sqlite3_value **);
 
-const void *sqlite3ValueText(sqlite3_value*, u8);
-int sqlite3ValueBytes(sqlite3_value*, u8);
-void sqlite3ValueSetStr(sqlite3_value*, int, const void *,u8, void(*)(void*));
-void sqlite3ValueFree(sqlite3_value*);
-sqlite3_value *sqlite3ValueNew(void);
-char *sqlite3utf16to8(const void*, int);
-int sqlite3ValueFromExpr(Expr *, u8, u8, sqlite3_value **);
-void sqlite3ValueApplyAffinity(sqlite3_value *, u8, u8);
 extern const unsigned char sqlite3UpperToLower[];
-void sqlite3RootPageMoved(Db*, int, int);
-void sqlite3Reindex(Parse*, Token*, Token*);
-void sqlite3AlterFunctions(sqlite3*);
-void sqlite3AlterRenameTable(Parse*, SrcList*, Token*);
-int sqlite3GetToken(const unsigned char *, int *);
-void sqlite3NestedParse(Parse*, const char*, ...);
-void sqlite3ExpirePreparedStatements(sqlite3*);
-void sqlite3CodeSubselect(Parse *, Expr *);
-int sqlite3SelectResolve(Parse *, Select *, NameContext *);
-//void sqlite3ColumnDefault(Vdbe *, Table *, int);
-void sqlite3AlterFinishAddColumn(Parse *, Token *);
-void sqlite3AlterBeginAddColumn(Parse *, SrcList *);
-const char *sqlite3TestErrorName(int);
-CollSeq *sqlite3GetCollSeq(sqlite3*, CollSeq *, const char *, int);
-char sqlite3AffinityType(const Token*);
-void sqlite3Analyze(Parse*, Token*, Token*);
-int sqlite3FindDb(sqlite3*, Token*);
-void sqlite3AnalysisLoad(sqlite3*,int iDB);
-void sqlite3DefaultRowEst(Index*);
-void sqlite3RegisterLikeFunctions(sqlite3*, int);
-int sqlite3IsLikeFunction(sqlite3*,Expr*,int*,char*);
-ThreadData *sqlite3ThreadData(void);
-const ThreadData *sqlite3ThreadDataReadOnly(void);
-void sqlite3ReleaseThreadData(void);
-void sqlite3AttachFunctions(sqlite3 *);
-void sqlite3MinimumFileFormat(Parse*, int, int);
-void sqlite3SchemaFree(void *);
-//Schema *sqlite3SchemaGet(Btree *);
-int sqlite3SchemaToIndex(sqlite3 *db, Schema *);
-KeyInfo *sqlite3IndexKeyinfo(Parse *, Index *);
-int sqlite3CreateFunc(sqlite3 *, const char *, int, int, void *, 
-  void (*)(sqlite3_context*,int,sqlite3_value **),
-  void (*)(sqlite3_context*,int,sqlite3_value **), void (*)(sqlite3_context*));
-int sqlite3ApiExit(sqlite3 *db, int);
+
 int sqlite3MallocFailed(void);
 void sqlite3FailedMalloc(void);
 //void sqlite3AbortOtherActiveVdbes(sqlite3 *, Vdbe *);
 int sqlite3OpenTempDatabase(Parse *);
+
 
 Expr *sqlite3ExprLikeOp(ExprList *pList, Token *pToken);
 
