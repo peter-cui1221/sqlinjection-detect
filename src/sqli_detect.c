@@ -31,7 +31,7 @@ static int do_check_sqli(char *prefix, char *postfix, char *input, int len)
     }
     SQLI_DEBUG("sqli detect, sflag 0x%x, select %d\n", parseObj.sflag, parseObj.select_num);
     free(buf);
-    if (parseObj.select_num > 0 && parseObj.sflag) {
+    if (parseObj.select_num > 0 && parseObj.sflag != SQL_FLAG_EXPR) {
         return 1;
     }
     return 0;
