@@ -26,7 +26,7 @@ sqlinjection-detect是一款基于语义分析的SQL注册检测库，能够有�
 # usage
 ```
 $ ./build.sh
-$ cmake .
+$ cmake . -DCMAKE_BUILD_TYPE=Release
 $ make
 
 $ gcc -I src/include/ sqli_test.c -o sqli_test -L. -lsqli_detect
