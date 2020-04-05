@@ -410,13 +410,7 @@ int sqlite3RunParser(Parse *pParse, const char *zSql, char **pzErrMsg){
   if( pEngine==0 ){
     return SQLITE_NOMEM;
   }
-  assert( pParse->sLastToken.dyn==0 );
-  assert( pParse->pNewTable==0 );
-  assert( pParse->pNewTrigger==0 );
-  assert( pParse->nVar==0 );
-  assert( pParse->nVarExpr==0 );
-  assert( pParse->nVarExprAlloc==0 );
-  assert( pParse->apVarExpr==0 );
+
   pParse->zTail = pParse->zSql = zSql;
   while( !sqlite3MallocFailed() && zSql[i]!=0 ){
     assert( i>=0 );
@@ -532,13 +526,7 @@ int sqlite3RunParser1(Parse *pParse, const char *zSql, int sqlLen, char **pzErrM
   if( pEngine==0 ){
     return SQLITE_NOMEM;
   }
-  assert( pParse->sLastToken.dyn==0 );
-  assert( pParse->pNewTable==0 );
-  assert( pParse->pNewTrigger==0 );
-  assert( pParse->nVar==0 );
-  assert( pParse->nVarExpr==0 );
-  assert( pParse->nVarExprAlloc==0 );
-  assert( pParse->apVarExpr==0 );
+
   pParse->zTail = pParse->zSql = zSql;
   while( !sqlite3MallocFailed() && /*zSql[i]!=0*/ i < sqlLen ){
     assert( i>=0 );

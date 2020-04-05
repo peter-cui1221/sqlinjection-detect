@@ -19,46 +19,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-/*
-** Extra interface definitions for those who need them
-*/
-#ifdef SQLITE_EXTRA
-# include "sqliteExtra.h"
-#endif
-
-/*
-** Many people are failing to set -DNDEBUG=1 when compiling SQLite.
-** Setting NDEBUG makes the code smaller and run faster.  So the following
-** lines are added to automatically set NDEBUG unless the -DSQLITE_DEBUG=1
-** option is set.  Thus NDEBUG becomes an opt-in rather than an opt-out
-** feature.
-*/
-#if !defined(NDEBUG) && !defined(SQLITE_DEBUG) 
-# define NDEBUG 1
-#endif
-
-/*
-** These #defines should enable >2GB file support on Posix if the
-** underlying operating system supports it.  If the OS lacks
-** large file support, or if the OS is windows, these should be no-ops.
-**
-** Large file support can be disabled using the -DSQLITE_DISABLE_LFS switch
-** on the compiler command line.  This is necessary if you are compiling
-** on a recent machine (ex: RedHat 7.2) but you want your code to work
-** on an older machine (ex: RedHat 6.0).  If you compile on RedHat 7.2
-** without this option, LFS is enable.  But LFS does not exist in the kernel
-** in RedHat 6.0, so the code won't work.  Hence, for maximum binary
-** portability you should omit LFS.
-**
-** Similar is true for MacOS.  LFS is only supported on MacOS 9 and later.
-*/
-#ifndef SQLITE_DISABLE_LFS
-# define _LARGE_FILE       1
-# ifndef _FILE_OFFSET_BITS
-#   define _FILE_OFFSET_BITS 64
-# endif
-# define _LARGEFILE_SOURCE 1
-#endif
 
 #include "sqlite3.h"
 #include "hash.h"
@@ -68,107 +28,6 @@ extern "C" {
 #include <string.h>
 #include <assert.h>
 #include <stddef.h>
-
-/*
-** If compiling for a processor that lacks floating point support,
-** substitute integer for floating-point
-*/
-#ifdef SQLITE_OMIT_FLOATING_POINT
-# define double sqlite_int64
-# define LONGDOUBLE_TYPE sqlite_int64
-# ifndef SQLITE_BIG_DBL
-#   define SQLITE_BIG_DBL (0x7fffffffffffffff)
-# endif
-# define SQLITE_OMIT_DATETIME_FUNCS 1
-# define SQLITE_OMIT_TRACE 1
-#endif
-#ifndef SQLITE_BIG_DBL
-# define SQLITE_BIG_DBL (1e99)
-#endif
-
-/*
-** The maximum number of in-memory pages to use for the main database
-** table and for temporary tables. Internally, the MAX_PAGES and 
-** TEMP_PAGES macros are used. To override the default values at
-** compilation time, the SQLITE_DEFAULT_CACHE_SIZE and 
-** SQLITE_DEFAULT_TEMP_CACHE_SIZE macros should be set.
-*/
-#ifdef SQLITE_DEFAULT_CACHE_SIZE
-# define MAX_PAGES SQLITE_DEFAULT_CACHE_SIZE
-#else
-# define MAX_PAGES   2000
-#endif
-#ifdef SQLITE_DEFAULT_TEMP_CACHE_SIZE
-# define TEMP_PAGES SQLITE_DEFAULT_TEMP_CACHE_SIZE
-#else
-# define TEMP_PAGES   500
-#endif
-
-/*
-** OMIT_TEMPDB is set to 1 if SQLITE_OMIT_TEMPDB is defined, or 0
-** afterward. Having this macro allows us to cause the C compiler 
-** to omit code used by TEMP tables without messy #ifndef statements.
-*/
-#ifdef SQLITE_OMIT_TEMPDB
-#define OMIT_TEMPDB 1
-#else
-#define OMIT_TEMPDB 0
-#endif
-
-/*
-** If the following macro is set to 1, then NULL values are considered
-** distinct when determining whether or not two entries are the same
-** in a UNIQUE index.  This is the way PostgreSQL, Oracle, DB2, MySQL,
-** OCELOT, and Firebird all work.  The SQL92 spec explicitly says this
-** is the way things are suppose to work.
-**
-** If the following macro is set to 0, the NULLs are indistinct for
-** a UNIQUE index.  In this mode, you can only have a single NULL entry
-** for a column declared UNIQUE.  This is the way Informix and SQL Server
-** work.
-*/
-#define NULL_DISTINCT_FOR_UNIQUE 1
-
-/*
-** The maximum number of attached databases.  This must be at least 2
-** in order to support the main database file (0) and the file used to
-** hold temporary tables (1).  And it must be less than 32 because
-** we use a bitmask of databases with a u32 in places (for example
-** the Parse.cookieMask field).
-*/
-#define MAX_ATTACHED 10
-
-/*
-** The maximum value of a ?nnn wildcard that the parser will accept.
-*/
-#define SQLITE_MAX_VARIABLE_NUMBER 999
-
-/*
-** The "file format" number is an integer that is incremented whenever
-** the VDBE-level file format changes.  The following macros define the
-** the default file format for new databases and the maximum file format
-** that the library can read.
-*/
-#define SQLITE_MAX_FILE_FORMAT 4
-#ifndef SQLITE_DEFAULT_FILE_FORMAT
-# define SQLITE_DEFAULT_FILE_FORMAT 4
-#endif
-
-/*
-** Provide a default value for TEMP_STORE in case it is not specified
-** on the command-line
-*/
-#ifndef TEMP_STORE
-# define TEMP_STORE 1
-#endif
-
-/*
-** GCC does not define the offsetof() macro so we'll have to do it
-** ourselves.
-*/
-#ifndef offsetof
-#define offsetof(STRUCTURE,FIELD) ((int)((char*)&((STRUCTURE*)0)->FIELD))
-#endif
 
 /*
 ** Check to see if this machine uses EBCDIC.  (Yes, believe it or
@@ -1748,45 +1607,6 @@ int sqlite3OpenTempDatabase(Parse *);
 Expr *sqlite3ExprLikeOp(ExprList *pList, Token *pToken);
 
 int sqlite3RunParser(Parse *pParse, const char *zSql, char **pzErrMsg);
-int sqlite3RunParser1(Parse *pParse, const char *zSql, int sqlLen, char **pzErrMsg);
-
-void resetParseObject(Parse *parseObj);
-
-Parse* sqlite3ParseNew();
-Parse* sqlite3ParseInit(Parse *parseObj);
-void sqlite3ParseReset(Parse *parseObj);
-void   sqlite3ParseDelete(Parse *parseObj);
-
-#define sqlite3ParseClean(X) sqlite3ParseReset(X)
-
-
-TokenArray* sqlite3TokenArrayAppend(TokenArray *tokenArray, TokenItem *item);
-ParsedResultArray* sqlite3ParsedResultArrayAppend(ParsedResultArray *resultArray, ParsedResultItem *result);
-void sqlite3ParsedResultArrayClean(ParsedResultArray *resultArray);
-
-Insert* sqlite3InsertNew(SrcList *pTabList, ExprList *pSetList, ValuesList *pValuesList, Select *pSelect, IdList *pColumn, int onError);
-void sqlite3InsertDelete(Insert *insertObj);
-
-Delete* sqlite3DeleteNew(SrcList *pTabList, Expr *pWhere, Expr *pLimit, Expr *pOffset);
-void sqlite3DeleteFree(Delete *deleteObj);
-
-Update* sqlite3UpdateNew(SrcList *pTabList, ExprList *pChanges, Expr *pWhere, int onError, Expr *pLimit, Expr *pOffset);
-void sqlite3UpdateDelete(Update* updateObj);
-
-SetStatement* sqlite3SetStatementNew(ExprList *pList, Token *pValue);
-void sqlite3SetStatementDelete(SetStatement* setObj);
-
-
-void sqlite3SetStatement(Parse *pParse, ExprList *pExprList, Token *pToken, SqlType sqltype);
-void sqlite3CheckSetScope(Parse *pParse, Token *pScope);
-
-void sqlite3ShowStatement(Parse *pParse, ShowStatementType showtype);
-
-#ifndef SQLITE_OMIT_SHARED_CACHE
-  void sqlite3TableLock(Parse *, int, int, u8, const char *);
-#else
-  #define sqlite3TableLock(v,w,x,y,z)
-#endif
 
 #ifdef SQLITE_MEMDEBUG
   void sqlite3MallocDisallow(void);
@@ -1806,9 +1626,6 @@ void sqlite3ShowStatement(Parse *pParse, ShowStatementType showtype);
   #define sqlite3ThreadSafeFree sqlite3FreeX
 #endif
 
-#ifdef SQLITE_SSE
-#include "sseInt.h"
-#endif
 
 #ifdef __cplusplus
 }
