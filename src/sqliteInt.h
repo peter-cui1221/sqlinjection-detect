@@ -80,30 +80,6 @@ extern const int sqlite3one;
 #define SQLITE_BIGENDIAN    (*(char *)(&sqlite3one)==0)
 #define SQLITE_LITTLEENDIAN (*(char *)(&sqlite3one)==1)
 
-/*
-** An instance of the following structure is used to store the busy-handler
-** callback for a given sqlite handle. 
-**
-** The sqlite.busyHandler member of the sqlite struct contains the busy
-** callback for the database handle. Each pager opened via the sqlite
-** handle is passed a pointer to sqlite.busyHandler. The busy-handler
-** callback is currently invoked only from within pager.c.
-*/
-typedef struct BusyHandler BusyHandler;
-struct BusyHandler {
-  int (*xFunc)(void *,int);  /* The busy callback */
-  void *pArg;                /* First arg to busy callback */
-  int nBusy;                 /* Incremented with each busy call */
-};
-
-/*
-** Defer sourcing vdbe.h and btree.h until after the "u8" and 
-** "BusyHandler typedefs.
-*/
-//#include "vdbe.h"
-//#include "btree.h"
-//#include "pager.h"
-
 #ifdef SQLITE_MEMDEBUG
 /*
 ** The following global variables are used for testing and debugging
@@ -1474,45 +1450,9 @@ int sqlite3SafetyOff(sqlite3*);
 int sqlite3SafetyCheck(sqlite3*);
 //void sqlite3ChangeCookie(sqlite3*, Vdbe*, int);
 
-#ifndef SQLITE_OMIT_TRIGGER
-  void sqlite3BeginTrigger(Parse*, Token*,Token*,int,int,IdList*,SrcList*,
-                           int,Expr*,int);
-  void sqlite3FinishTrigger(Parse*, TriggerStep*, Token*);
-  void sqlite3DropTrigger(Parse*, SrcList*);
-  void sqlite3DropTriggerPtr(Parse*, Trigger*);
-  int sqlite3TriggersExist(Parse*, Table*, int, ExprList*);
-  int sqlite3CodeRowTrigger(Parse*, int, ExprList*, int, Table *, int, int, 
-                           int, int);
-  void sqliteViewTriggers(Parse*, Table*, Expr*, int, ExprList*);
-  void sqlite3DeleteTriggerStep(TriggerStep*);
-  TriggerStep *sqlite3TriggerSelectStep(Select*);
-  TriggerStep *sqlite3TriggerInsertStep(Token*, IdList*, ExprList*,Select*,int);
-  TriggerStep *sqlite3TriggerUpdateStep(Token*, ExprList*, Expr*, int);
-  TriggerStep *sqlite3TriggerDeleteStep(Token*, Expr*);
-  void sqlite3DeleteTrigger(Trigger*);
-  void sqlite3UnlinkAndDeleteTrigger(sqlite3*,int,const char*);
-#else
-# define sqlite3TriggersExist(A,B,C,D,E,F) 0
-# define sqlite3DeleteTrigger(A)
-# define sqlite3DropTriggerPtr(A,B)
-# define sqlite3UnlinkAndDeleteTrigger(A,B,C)
-# define sqlite3CodeRowTrigger(A,B,C,D,E,F,G,H,I) 0
-#endif
-
 int sqlite3JoinType(Parse*, Token*, Token*, Token*);
 void sqlite3CreateForeignKey(Parse*, ExprList*, Token*, ExprList*, int);
 void sqlite3DeferForeignKey(Parse*, int);
-#ifndef SQLITE_OMIT_AUTHORIZATION
-  void sqlite3AuthRead(Parse*,Expr*,SrcList*);
-  int sqlite3AuthCheck(Parse*,int, const char*, const char*, const char*);
-  void sqlite3AuthContextPush(Parse*, AuthContext*, const char*);
-  void sqlite3AuthContextPop(AuthContext*);
-#else
-# define sqlite3AuthRead(a,b,c)
-# define sqlite3AuthCheck(a,b,c,d,e)    SQLITE_OK
-# define sqlite3AuthContextPush(a,b,c)
-# define sqlite3AuthContextPop(a)  ((void)(a))
-#endif
 void sqlite3Attach(Parse*, Expr*, Expr*, Expr*);
 void sqlite3Detach(Parse*, Expr*);
 //int sqlite3BtreeFactory(const sqlite3 *db, const char *zFilename,
@@ -1580,7 +1520,6 @@ const char *sqlite3TestErrorName(int);
 CollSeq *sqlite3GetCollSeq(sqlite3*, CollSeq *, const char *, int);
 char sqlite3AffinityType(const Token*);
 void sqlite3Analyze(Parse*, Token*, Token*);
-int sqlite3InvokeBusyHandler(BusyHandler*);
 int sqlite3FindDb(sqlite3*, Token*);
 void sqlite3AnalysisLoad(sqlite3*,int iDB);
 void sqlite3DefaultRowEst(Index*);
@@ -1607,25 +1546,6 @@ int sqlite3OpenTempDatabase(Parse *);
 Expr *sqlite3ExprLikeOp(ExprList *pList, Token *pToken);
 
 int sqlite3RunParser(Parse *pParse, const char *zSql, char **pzErrMsg);
-
-#ifdef SQLITE_MEMDEBUG
-  void sqlite3MallocDisallow(void);
-  void sqlite3MallocAllow(void);
-  int sqlite3TestMallocFail(void);
-#else
-  #define sqlite3TestMallocFail() 0
-  #define sqlite3MallocDisallow()
-  #define sqlite3MallocAllow()
-#endif
-
-#ifdef SQLITE_ENABLE_MEMORY_MANAGEMENT
-  void *sqlite3ThreadSafeMalloc(int);
-  void sqlite3ThreadSafeFree(void *);
-#else
-  #define sqlite3ThreadSafeMalloc sqlite3MallocX
-  #define sqlite3ThreadSafeFree sqlite3FreeX
-#endif
-
 
 #ifdef __cplusplus
 }
