@@ -443,7 +443,6 @@ int sqlite3OutstandingMallocs(Tcl_Interp *interp){
 ** This is the test layer's wrapper around sqlite3OsMalloc().
 */
 static void * OSMALLOC(int n){
-  sqlite3OsEnterMutex();
 #ifdef SQLITE_ENABLE_MEMORY_MANAGEMENT
   sqlite3_nMaxAlloc = 
       MAX(sqlite3_nMaxAlloc, sqlite3ThreadDataReadOnly()->nAlloc);
@@ -456,10 +455,8 @@ static void * OSMALLOC(int n){
     sqlite3_nMalloc++;
     applyGuards(p);
     linkAlloc(p);
-    sqlite3OsLeaveMutex();
     return (void *)(&p[TESTALLOC_NGUARD + 2*sizeof(void *)/sizeof(u32)]);
   }
-  sqlite3OsLeaveMutex();
   return 0;
 }
 
@@ -476,14 +473,12 @@ static int OSSIZEOF(void *p){
 ** pointer to the space allocated for the application to use.
 */
 static void OSFREE(void *pFree){
-  sqlite3OsEnterMutex();
   u32 *p = (u32 *)getOsPointer(pFree);   /* p points to Os level allocation */
   checkGuards(p);
   unlinkAlloc(p);
   memset(pFree, 0x55, OSSIZEOF(pFree));
   sqlite3OsFree(p);
   sqlite3_nFree++;
-  sqlite3OsLeaveMutex();
 }
 
 /*
@@ -1328,37 +1323,6 @@ void *sqlite3TextToPtr(const char *z){
 #endif
 
 /*
-** Return a pointer to the ThreadData associated with the calling thread.
-*/
-ThreadData *sqlite3ThreadData(){
-  ThreadData *p = (ThreadData*)sqlite3OsThreadSpecificData(1);
-  if( !p ){
-    sqlite3FailedMalloc();
-  }
-  return p;
-}
-
-/*
-** Return a pointer to the ThreadData associated with the calling thread.
-** If no ThreadData has been allocated to this thread yet, return a pointer
-** to a substitute ThreadData structure that is all zeros. 
-*/
-const ThreadData *sqlite3ThreadDataReadOnly(){
-  static const ThreadData zeroData = {0};  /* Initializer to silence warnings
-                                           ** from broken compilers */
-  const ThreadData *pTd = sqlite3OsThreadSpecificData(0);
-  return pTd ? pTd : &zeroData;
-}
-
-/*
-** Check to see if the ThreadData for this thread is all zero.  If it
-** is, then deallocate it. 
-*/
-void sqlite3ReleaseThreadData(){
-  sqlite3OsThreadSpecificData(-1);
-}
-
-/*
 ** This function must be called before exiting any API function (i.e. 
 ** returning control to the user) that has called sqlite3Malloc or
 ** sqlite3Realloc.
@@ -1387,14 +1351,13 @@ static int mallocHasFailed = 0;
 ** to sqlite3ApiExit(), or false otherwise.
 */
 int sqlite3MallocFailed(){
-  return (mallocHasFailed && sqlite3OsInMutex(1));
+  return (mallocHasFailed);
 }
 
 /* 
 ** Set the "malloc has failed" condition to true for this thread.
 */
 void sqlite3FailedMalloc(){
-  sqlite3OsEnterMutex();
   assert( mallocHasFailed==0 );
   mallocHasFailed = 1;
 }
