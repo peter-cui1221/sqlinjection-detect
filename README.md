@@ -25,6 +25,8 @@ sqlinjection-detect是一款基于语义分析的SQL注册检测库，能够有�
 
 # usage
 ```
+$ yum install sqlite-devel.x86_64
+
 $ ./build.sh
 $ cmake . -DCMAKE_BUILD_TYPE=Release
 $ make
