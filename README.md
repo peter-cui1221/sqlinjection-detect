@@ -32,8 +32,7 @@ $ cmake . -DCMAKE_BUILD_TYPE=Release
 $ make
 
 $ gcc -I src/include/ sqli_test.c -o sqli_test -L. -lsqli_detect
-$ ./sqli_test 
-$ sqli found
+$ ./test.sh
 ```
 
 # thanks
